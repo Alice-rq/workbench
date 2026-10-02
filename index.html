@@ -958,14 +958,17 @@
     <span id="sub-count">共 0 个</span>
   </div>
 
-  <div class="toolbar">
+    <div class="toolbar">
     <button class="btn primary" id="addWbBtn" type="button">＋ 添加工作台</button>
     <span class="spacer"></span>
+    <button class="btn" id="exportAllBtn" type="button">📦 完整备份</button>
+    <button class="btn" id="importAllBtn" type="button">📥 完整恢复</button>
     <button class="btn" id="exportBtn" type="button">备份</button>
     <button class="btn" id="importBtn" type="button">恢复</button>
     <button class="btn" id="resetWbBtn" type="button">重置</button>
     <button class="btn" id="installBtn" type="button" hidden>安装到桌面</button>
     <input type="file" id="fileInput" accept=".json,application/json" hidden />
+    <input type="file" id="fileInputAll" accept=".json,application/json" hidden />
   </div>
 
   <div class="grid" id="grid"></div>
@@ -2651,6 +2654,105 @@ $('resetWbBtn').addEventListener('click', () => {
   saveWb();
   renderWb();
   toast('已恢复默认列表');
+});
+/* =========================================================
+   完整备份 / 完整恢复
+   —— 一键打包所有平台的 localStorage 数据
+   ======================================================= */
+const ALL_STORAGE_KEYS = [
+  // ---- 主工作台 ----
+  'workbench-wheel-v1',      // 转盘：活动、积分、记录、连胜
+  'my-workbench-items-v1',   // 工作台卡片列表
+  'workbench-theme-v1',      // 外观配色
+  'workbench-global-v1',     // 番茄钟、当前抽到的项目
+  // ---- 学习平台 ----
+  'study_workbench_v1',      // 学习平台主数据
+  'study_workbench_theme',   // 学习平台主题
+  // ---- 写作平台 ----
+  'writer-app-v1',           // 写作平台主数据
+  'writer-app-prefs-v1',     // 写作平台偏好
+  // ---- 独立转盘 ----
+  'wheel-config-v6',         // wheel.html 独立版数据
+  // ---- 习惯平台（如果你用了 habit/index.html）----
+  'habit-platform-v1',
+  // ---- 子平台状态缓存 ----
+  'wb-status:study',
+  'wb-status:writer',
+  'wb-status:wheel',
+  'wb-status:habit',
+];
+
+$('exportAllBtn').addEventListener('click', () => {
+  const payload = {
+    app: 'workbench-all',
+    version: 1,
+    exportedAt: new Date().toISOString(),
+    data: {}
+  };
+  let found = 0;
+  ALL_STORAGE_KEYS.forEach(k => {
+    try {
+      const v = localStorage.getItem(k);
+      if (v != null) { payload.data[k] = v; found++; }
+    } catch (e) {}
+  });
+
+  const blob = new Blob([JSON.stringify(payload, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  const d = new Date();
+  const p = n => String(n).padStart(2, '0');
+  a.href = URL.createObjectURL(blob);
+  a.download = '工作台-完整备份-' +
+    d.getFullYear() + p(d.getMonth() + 1) + p(d.getDate()) + '-' +
+    p(d.getHours()) + p(d.getMinutes()) + '.json';
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 1500);
+  toast('已导出 ' + found + ' 份平台数据');
+});
+
+$('importAllBtn').addEventListener('click', () => $('fileInputAll').click());
+$('fileInputAll').addEventListener('change', e => {
+  const f = e.target.files && e.target.files[0];
+  e.target.value = '';
+  if (!f) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!data || data.app !== 'workbench-all' || !data.data) {
+        alert('这不是「完整备份」文件。\n\n如果你有各子平台的单独备份，请到对应平台里导入。');
+        return;
+      }
+      const count = Object.keys(data.data).length;
+      const when = data.exportedAt ? new Date(data.exportedAt).toLocaleString('zh-CN') : '未知';
+      if (!confirm(
+        '完整恢复\n\n' +
+        '备份时间：' + when + '\n' +
+        '包含：' + count + ' 份平台数据\n\n' +
+        '⚠️ 将覆盖当前所有平台的数据，不可撤销。\n' +
+        '确定继续吗？'
+      )) return;
+
+      Object.keys(data.data).forEach(k => {
+        try { localStorage.setItem(k, data.data[k]); } catch (err) {}
+      });
+
+      // 刷新一下主界面显示
+      try {
+        wheelState = loadWheel();
+        wbItems = loadWb();
+        themeState = loadTheme();
+      } catch (err) {}
+
+      alert('✅ 完整恢复成功！\n\n请关闭浏览器所有相关标签页，再重新打开，让所有平台生效。');
+      location.reload();
+    } catch (err) {
+      alert('文件格式不正确：' + (err.message || '未知错误'));
+    }
+  };
+  reader.readAsText(f);
 });
 $('exportBtn').addEventListener('click', () => {
   const blob = new Blob([JSON.stringify(wbItems, null, 2)], { type: 'application/json' });
