@@ -155,6 +155,16 @@
     margin: 7px 0 0; font-size: 13px; line-height: 1.6; color: var(--muted);
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   }
+.card-status {
+  margin-top: 10px;
+  padding: 6px 10px;
+  font-size: 12px;
+  font-weight: 600;
+  color: var(--c);
+  background: var(--c-soft);
+  border-radius: 8px;
+  line-height: 1.5;
+}
   .go {
     margin-top: auto; padding-top: 16px;
     display: flex; align-items: center; justify-content: space-between;
@@ -355,9 +365,9 @@ const COLORS = ['#4f7cff', '#8b5cf6', '#ec4899', '#ff6b6b',
 
 /* 首次打开时的默认工作台，可自行修改或删掉 */
 const DEFAULT_ITEMS = [
-  { id: 'w1', name: '学习工作台', icon: '📚', desc: '背单词 · 复习计划 · 学习记录', url: './学习工作台.html', color: '#4f7cff' },
-  { id: 'w2', name: '转盘工作台', icon: '🎡', desc: '随机转盘 · 抽签 · 选项决策',   url: './转盘工作台.html', color: '#f5a623' },
-  { id: 'w3', name: '写作工作台', icon: '✍️', desc: '灵感收集 · 草稿 · 写作统计',   url: './写作工作台.html', color: '#00b894' }
+  { id: 'w1', name: '学习工作台', icon: '📚', desc: '背单词 · 复习计划 · 学习记录', url: './study.html',  color: '#4f7cff' },
+  { id: 'w2', name: '转盘工作台', icon: '🎡', desc: '随机转盘 · 抽签 · 选项决策',   url: './wheel.html',  color: '#f5a623' },
+  { id: 'w3', name: '写作工作台', icon: '✍️', desc: '灵感收集 · 草稿 · 写作统计',   url: './writer.html', color: '#00b894' }
 ];
 
 let items = loadItems();
@@ -411,6 +421,41 @@ function toast(msg) {
 /* =========================================================
    3. 渲染卡片
    ======================================================= */
+/* ===== 读取子工作台同步过来的状态 ===== */
+function guessStatusKey(item){
+  const url = ((item.url || '') + ' ' + (item.name || '')).toLowerCase();
+  if (url.includes('wheel') || url.includes('转盘')) return 'wheel';
+  if (url.includes('study') || url.includes('学习') || url.includes('遴选')) return 'study';
+  if (url.includes('writ')  || url.includes('写作')) return 'writer';
+  return '';
+}
+
+function readHubStatus(key){
+  if (!key) return null;
+  try {
+    const raw = localStorage.getItem('wb-status:' + key);
+    if (!raw) return null;
+    const d = JSON.parse(raw);
+    if (!d.updatedAt || Date.now() - d.updatedAt > 7 * 86400000) return null;
+    return d;
+  } catch(e){ return null; }
+}
+
+function formatHubStatus(item){
+  const key = guessStatusKey(item);
+  const d = readHubStatus(key);
+  if (!d) return '';
+  if (key === 'study') {
+    return `📋 待办 ${d.todo || 0} · 🔥 连续 ${d.streak || 0} 天`;
+  }
+  if (key === 'writer') {
+    return `✍️ 今日 ${d.todayWords || 0} 字 · 📖 ${d.chapterCount || 0} 章`;
+  }
+  if (key === 'wheel') {
+    return `🎯 今日积分 ${d.todayScore || 0} · 🔥 连续 ${d.streak || 0} 天`;
+  }
+  return '';
+}
 const grid = $('grid');
 const emptyEl = $('empty');
 
@@ -423,6 +468,7 @@ function render() {
           <div class="icon">${escapeHtml(w.icon || '📁')}</div>
           <h2>${escapeHtml(w.name)}</h2>
           ${w.desc ? `<p>${escapeHtml(w.desc)}</p>` : ''}
+${formatHubStatus(w) ? `<div class="card-status">${formatHubStatus(w)}</div>` : ''}
           <div class="go"><span>进入</span><span>→</span></div>
         </a>
         <div class="card-ops">
