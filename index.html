@@ -529,6 +529,18 @@
     transition: all .15s ease;
     font-family: inherit;
   }
+  .field select {
+    width: 100%; padding: 10px 12px; font-size: 14px;
+    border: 1px solid var(--line); border-radius: 9px;
+    background: var(--input); color: var(--text);
+    transition: all .15s ease;
+    font-family: inherit;
+    cursor: pointer;
+  }
+  .field select:focus {
+    outline: none; border-color: var(--accent); background: var(--card);
+    box-shadow: 0 0 0 3px var(--accent-soft);
+  }
   .field input[type="text"]:focus,
   .field input[type="number"]:focus {
     outline: none; border-color: var(--accent); background: var(--card);
@@ -1013,11 +1025,11 @@
       <span>名称 <i>*</i></span>
       <input id="act-name" type="text" maxlength="20" placeholder="例如：学习遴选" />
     </label>
-       <label class="field">
+           <label class="field">
       <span>分组</span>
-      <input id="act-group" type="text" maxlength="10" list="actGroupList" placeholder="点下方按钮，或直接输入" />
-      <datalist id="actGroupList"></datalist>
-      <div class="group-quick" id="actGroupQuick"></div>
+      <select id="act-group">
+        <option value="">— 不分组 —</option>
+      </select>
     </label>
     <div class="field">
       <span>颜色</span>
@@ -1055,6 +1067,21 @@
   </div>
 </div>
 
+<!-- ================= 新建分组弹窗 ================= -->
+<div class="modal" id="groupNewModal">
+  <div class="modal-mask" data-close></div>
+  <div class="modal-card" role="dialog" style="max-width:340px">
+    <h2>新建分组</h2>
+    <label class="field">
+      <span>分组名称</span>
+      <input id="group-new-input" type="text" maxlength="10" placeholder="如：学习 / 娱乐 / 生活" />
+    </label>
+    <div class="modal-actions">
+      <button type="button" class="btn" data-close>取消</button>
+      <button type="button" class="btn primary" id="group-new-save">确定</button>
+    </div>
+  </div>
+</div>
 <!-- ================= 打卡确认弹窗 ================= -->
 <div class="modal" id="confirmModal">
   <div class="modal-mask" data-close></div>
@@ -2042,35 +2069,89 @@ $('act-color-picker').addEventListener('input', e => {
   box.querySelectorAll('.swatch').forEach(x => x.classList.remove('on'));
 });
 /* 渲染分组快捷按钮和 datalist 建议 */
-function renderActGroupOptions() {
+/* 填充分组下拉框 */
+function renderActGroupOptions(currentValue) {
   const groups = [...new Set(
     wheelState.activities.map(a => (a.group || '').trim()).filter(Boolean)
   )].sort((a, b) => a.localeCompare(b, 'zh-Hans-CN'));
 
-  const dl = $('actGroupList');
-  if (dl) {
-    dl.innerHTML = groups.map(g => '<option value="' + escapeHtml(g) + '"></option>').join('');
-  }
+  const sel = $('act-group');
+  if (!sel) return;
 
-  const quick = $('actGroupQuick');
-  if (quick) {
-    quick.innerHTML = groups.map(g =>
-      '<button type="button" data-group-pick="' + escapeHtml(g) + '">' + escapeHtml(g) + '</button>'
-    ).join('');
-    quick.querySelectorAll('[data-group-pick]').forEach(btn => {
-      btn.addEventListener('click', () => {
-        $('act-group').value = btn.dataset.groupPick;
-      });
-    });
-  }
+  const cur = (currentValue || '').trim();
+  // 编辑时如果当前活动的分组不在已有列表里，临时插进去
+  if (cur && !groups.includes(cur)) groups.unshift(cur);
+
+  sel.innerHTML =
+    '<option value="">— 不分组 —</option>' +
+    groups.map(g => '<option value="' + escapeHtml(g) + '">' + escapeHtml(g) + '</option>').join('') +
+    '<option value="__new__">➕ 新建分组…</option>';
+
+   sel.value = cur;
+  sel.dataset.prevGroup = cur;
 }
+
+/* 新建分组弹窗（返回 Promise，用户确认拿到名字，取消拿到 null） */
+function openGroupNewModal() {
+  return new Promise(function (resolve) {
+    const modal = $('groupNewModal');
+    const input = $('group-new-input');
+    const saveBtn = $('group-new-save');
+    const cancelEls = modal.querySelectorAll('[data-close]');
+
+    input.value = '';
+    modal.classList.add('is-open');
+    setTimeout(function () { input.focus(); }, 80);
+
+    let settled = false;
+    function finish(val) {
+      if (settled) return;
+      settled = true;
+      modal.classList.remove('is-open');
+      saveBtn.removeEventListener('click', onSave);
+      cancelEls.forEach(function (el) { el.removeEventListener('click', onCancel); });
+      input.removeEventListener('keydown', onKey);
+      resolve(val);
+    }
+    function onSave() {
+      const v = input.value.trim().slice(0, 10);
+      if (!v) { input.focus(); return; }
+      finish(v);
+    }
+    function onCancel() { finish(null); }
+    function onKey(e) {
+      if (e.key === 'Enter') { e.preventDefault(); e.stopPropagation(); onSave(); }
+      if (e.key === 'Escape') { e.preventDefault(); e.stopPropagation(); onCancel(); }
+    }
+
+    saveBtn.addEventListener('click', onSave);
+    cancelEls.forEach(function (el) { el.addEventListener('click', onCancel); });
+    input.addEventListener('keydown', onKey);
+  });
+}
+
+/* 选到"新建分组"时打开弹窗 */
+$('act-group').addEventListener('change', async function () {
+  if (this.value !== '__new__') return;
+  const name = await openGroupNewModal();
+  if (!name) {
+    this.value = this.dataset.prevGroup || '';
+    return;
+  }
+  const newOpt = document.createElement('option');
+  newOpt.value = name;
+  newOpt.textContent = name;
+  const newPos = this.querySelector('option[value="__new__"]');
+  this.insertBefore(newOpt, newPos);
+  this.value = name;
+  this.dataset.prevGroup = name;
+});
 function openActivityEditor(id) {
   editingActId = id || null;
   const a = id ? wheelState.activities.find(x => x.id === id) : null;
   $('actModalTitle').textContent = a ? '编辑活动' : '新建活动';
-  $('act-name').value = a ? a.name : '';
-  $('act-group').value = a ? (a.group || '') : '';
-  renderActGroupOptions();
+    $('act-name').value = a ? a.name : '';
+  renderActGroupOptions(a ? (a.group || '') : '');
   $('act-weight').value = a ? a.weight : 1;
   $('act-minutes').value = a ? a.minutes : 25;
   $('act-points').value = a ? a.points : 10;
