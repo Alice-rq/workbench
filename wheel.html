@@ -469,35 +469,10 @@
   <div class="dialog card">
     <div class="dialog-head"><h3>设置</h3><button class="close-btn" id="closeMenu" type="button">✕</button></div>
     <div class="dialog-body">
-      <div class="sync-section" id="syncSection">
-        <div class="sync-header">
-          <span class="lbl"><span class="sync-dot" id="syncDot"></span>云同步</span>
-          <span class="sync-status-text" id="syncStatusText">未连接</span>
-        </div>
-        <div class="sync-desc" id="syncDesc">开启后可在手机与电脑间同步积分、活动与记录。</div>
-
-        <div id="syncConnectedBox" hidden>
-          <div class="sync-id-row">
-            <span class="sync-id" id="syncIdDisplay">-</span>
-            <button class="mini-btn accent" id="copySyncUrl" type="button">复制链接</button>
-          </div>
-          <div class="sync-btns" style="margin-top:8px">
-            <button class="btn primary" id="syncPush" type="button">↑ 推送到云</button>
-            <button class="btn" id="syncPull" type="button">↓ 从云拉取</button>
-          </div>
-          <button class="btn danger" id="syncDisconnect" type="button" style="width:100%; margin-top:7px">断开同步</button>
-        </div>
-
-        <div class="sync-btns" id="syncDisconnectedBox">
-          <button class="btn primary" id="syncCreate" type="button">创建云同步</button>
-          <button class="btn" id="syncConnect" type="button">连接已有</button>
-        </div>
+    
       </div>
 
-      <div class="switch-row">
-        <div><div class="lbl">自动推送</div><div class="sub">每次打卡后自动上传到云</div></div>
-        <button class="switch" id="autoSyncSwitch" type="button"></button>
-      </div>
+ 
 
       <div class="switch-row">
         <div><div class="lbl">提示音</div><div class="sub">计时结束与打卡时播放</div></div>
@@ -526,56 +501,6 @@
   </div>
 </div>
 
-<!-- 首次使用引导 -->
-<div class="overlay" id="onboardOverlay" hidden>
-  <div class="dialog card" style="max-width:400px">
-    <div class="onboard-body">
-      <div class="onboard-title">👋 首次使用建议</div>
-      <p class="onboard-text">
-        这个页面所有数据都存在浏览器本地。<br>
-        换设备、清理缓存、换浏览器，数据都会丢失。
-      </p>
-      <p class="onboard-text" style="margin-bottom:6px"><b>建议做两件事：</b></p>
-      <ol class="onboard-list">
-        <li>创建一个云同步，拿到固定 ID</li>
-        <li>把带 ID 的链接收藏起来</li>
-      </ol>
-      <p class="onboard-note">
-        完成之后，无论在手机还是电脑，打开这个链接就能自动恢复数据。
-      </p>
-    </div>
-    <div class="dialog-foot">
-      <button class="btn" id="onboardSkip" type="button">以后再说</button>
-      <button class="btn primary" id="onboardCreate" type="button">创建云同步</button>
-    </div>
-  </div>
-</div>
-
-<!-- 同步链接展示 -->
-<div class="overlay" id="syncUrlOverlay" hidden>
-  <div class="dialog card" style="max-width:400px">
-    <div class="dialog-head">
-      <h3>✅ 同步已创建</h3>
-      <button class="close-btn" id="closeSyncUrl" type="button">✕</button>
-    </div>
-    <div class="dialog-body">
-      <p style="margin:0;font-size:13px;line-height:1.7;color:var(--text)">
-        建议把下面这个链接收藏起来。以后在任何设备打开它，都会自动恢复数据。
-      </p>
-      <div class="sync-id-row" style="margin-top:2px">
-        <span class="sync-id" id="syncUrlDisplay">-</span>
-      </div>
-      <div style="display:flex;gap:8px">
-        <button class="btn primary" id="copySyncUrlBtn" type="button" style="flex:1">复制链接</button>
-        <button class="btn" id="openSyncUrlBtn" type="button" style="flex:1">打开试试</button>
-      </div>
-      <p style="margin:0;font-size:11.5px;color:var(--muted);line-height:1.6">
-        提示：也可以在「设置 → 云同步」里随时复制这个链接。
-      </p>
-    </div>
-  </div>
-</div>
-
 <input type="file" id="importFile" accept=".json,application/json" style="display:none">
 
 <script>
@@ -584,9 +509,7 @@
 
   const TAU = Math.PI * 2;
   const STORAGE_KEY = 'wheel-config-v6';
-  const SYNC_KEY = 'wheel-sync-v1';
-  const VISIT_KEY = 'wheel-first-visit-done';
-  const EXPORT_KEY = 'wheel-last-export';
+   const EXPORT_KEY = 'wheel-last-export';
   const PULL_KEY = 'wheel-last-pull';
   const $ = id => document.getElementById(id);
 
@@ -620,7 +543,7 @@
   let currentTask = null;
   let lastPickedId = null;
   let editingId = null;
-  let syncCfg = loadSyncCfg();
+  
 
   function defaultActivities() {
     return DEFAULTS.map((d,i) => ({ id: uid(), name:d.name, group:d.group, enabled:true, weight:d.weight, minutes:d.minutes, points:d.points, color:d.color || pickColor(i) }));
@@ -665,11 +588,7 @@
     };
   }
   function saveState() { try { localStorage.setItem(STORAGE_KEY, JSON.stringify(state)); } catch (e) {} }
-  function loadSyncCfg() {
-    try { const r = localStorage.getItem(SYNC_KEY); if (r) { const p = JSON.parse(r); return { id: p.id || null, autoPush: !!p.autoPush }; } } catch(e){}
-    return { id: null, autoPush: false };
-  }
-  function saveSyncCfg() { try { localStorage.setItem(SYNC_KEY, JSON.stringify(syncCfg)); } catch(e){} }
+ 
   function markExported() { try { localStorage.setItem(EXPORT_KEY, Date.now().toString()); } catch(e){} }
   function markPulled() { try { localStorage.setItem(PULL_KEY, Date.now().toString()); } catch(e){} }
   function getLastPull() { return Number(localStorage.getItem(PULL_KEY)) || 0; }
@@ -1429,98 +1348,9 @@ function startTimer() {
     checkBackup();
   }
 
-  function updateSyncUI() {
-    const connected = !!syncCfg.id;
-    $('syncDot').classList.toggle('on', connected);
-    $('syncStatusText').textContent = connected ? '已连接' : '未连接';
-    $('syncStatusText').className = 'sync-status-text' + (connected ? ' ok' : '');
-    $('syncConnectedBox').hidden = !connected;
-    $('syncDisconnectedBox').hidden = connected;
-    if (connected) $('syncIdDisplay').textContent = syncCfg.id;
-    $('autoSyncSwitch').classList.toggle('on', syncCfg.autoPush);
-  }
-
-  function getSyncUrl() {
-    if (!syncCfg.id) return location.href.split('?')[0].split('#')[0];
-    return location.href.split('?')[0].split('#')[0] + '?sync=' + encodeURIComponent(syncCfg.id);
-  }
-
-  async function cloudCreate() {
-    setSyncStatus('正在创建…', '');
-    try {
-      const res = await fetch('https://jsonblob.com/api/jsonBlob', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app:'today-wheel', version:3, activities:state.activities, score:state.score, history:state.history, streak:state.streak, settings:state.settings })
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const loc = res.headers.get('Location');
-      if (!loc) throw new Error('未返回同步 ID');
-      syncCfg.id = loc.split('/').pop();
-      saveSyncCfg(); updateSyncUI();
-      // 自动把 URL 更新为带 sync 参数
-      const newUrl = getSyncUrl();
-      try { history.replaceState(null, '', newUrl); } catch(e) {}
-      // 展示链接对话框
-      $('syncUrlDisplay').textContent = newUrl.length > 44 ? newUrl.slice(0, 42) + '…' : newUrl;
-      $('syncUrlDisplay').title = newUrl;
-      syncUrlOverlay.hidden = false;
-      setSyncStatus('已连接', 'ok');
-    } catch (e) {
-      setSyncStatus('创建失败：' + e.message + '（可尝试用导出/导入）', 'err');
-    }
-  }
-
-  async function cloudPush(id, silent) {
-    if (!silent) setSyncStatus('正在推送…', '');
-    try {
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ app:'today-wheel', version:3, activities:state.activities, score:state.score, history:state.history, streak:state.streak, settings:state.settings })
-      });
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      if (!silent) { setSyncStatus('已推送到云 ' + timeNow(), 'ok'); setTimeout(() => setSyncStatus('', ''), 3500); }
-      return true;
-    } catch (e) {
-      if (!silent) setSyncStatus('推送失败：' + e.message, 'err');
-      throw e;
-    }
-  }
-
-  async function cloudPull(id, opts) {
-    opts = opts || {};
-    if (!opts.silent) setSyncStatus('正在拉取…', '');
-    try {
-      const res = await fetch(`https://jsonblob.com/api/jsonBlob/${id}`);
-      if (!res.ok) throw new Error('HTTP ' + res.status);
-      const data = await res.json();
-      if (!data || !Array.isArray(data.activities)) throw new Error('云上数据格式不正确');
-      if (!opts.silent) {
-        if (!confirm(`从云端拉取数据将覆盖本地数据。\n\n云端有 ${data.activities.length} 个活动，总积分 ${Number(data.score)||0}。\n\n确定继续吗？`)) {
-          setSyncStatus('已取消', '');
-          setTimeout(() => setSyncStatus('', ''), 2000);
-          return;
-        }
-      }
-      applyImported(data);
-      markPulled();
-      setSyncStatus('拉取成功 ' + timeNow(), 'ok');
-      setTimeout(() => setSyncStatus('', ''), 3500);
-    } catch (e) {
-      setSyncStatus('拉取失败：' + e.message, 'err');
-    }
-  }
-
-  function setSyncStatus(text, cls) {
-    const el = $('syncStatusText');
-    if (el) { el.textContent = text || (syncCfg.id ? '已连接' : '未连接'); el.className = 'sync-status-text ' + cls; }
-  }
-  function timeNow() {
-    const d = new Date(); const p = n => String(n).padStart(2,'0');
-    return p(d.getHours()) + ':' + p(d.getMinutes()) + ':' + p(d.getSeconds());
-  }
-
+ 
+ 
+ 
   function syncSettingsUI() {
     $('soundSwitch').classList.toggle('on', state.settings.soundEnabled);
     $('volumeRange').value = Math.round(state.settings.volume * 100);
@@ -1552,55 +1382,7 @@ function startTimer() {
     }
   }
 
-  /* ===== 首次访问引导 ===== */
-  function checkFirstVisit() {
-    if (localStorage.getItem(VISIT_KEY)) return;
-    // 从 URL 同步链接打开时，跳过引导
-    const params = new URLSearchParams(location.search);
-    if (params.get('sync')) { localStorage.setItem(VISIT_KEY, '1'); return; }
-    if (syncCfg.id) { localStorage.setItem(VISIT_KEY, '1'); return; }
-    localStorage.setItem(VISIT_KEY, '1');
-    setTimeout(() => { onboardOverlay.hidden = false; }, 800);
-  }
-
-  /* ===== URL 同步 ===== */
-  function extractSyncId(str) {
-    if (!str) return '';
-    let s = String(str).trim();
-    if (s.includes('?sync=')) s = s.split('?sync=')[1].split('&')[0];
-    else if (s.includes('sync=')) s = s.split('sync=')[1].split('&')[0];
-    else if (s.includes('/')) s = s.split('/').pop().split('?')[0].split('#')[0];
-    return s.trim();
-  }
-
-  async function checkUrlSync() {
-    const params = new URLSearchParams(location.search);
-    const urlId = extractSyncId(params.get('sync') || '');
-    if (!urlId) return;
-
-    // 已经连接同一个 ID
-    if (syncCfg.id === urlId) {
-      // 从未拉取过 → 尝试静默拉取一次
-      if (!getLastPull()) {
-        await cloudPull(urlId, { silent: true });
-      }
-      return;
-    }
-
-    // URL 里的 ID 与当前不同
-    const hasLocalData = state.history.length > 0;
-    if (hasLocalData && syncCfg.id) {
-      if (!confirm(`此链接来自另一个云同步「${urlId}」。\n\n是否切换到该同步并拉取数据？\n（当前本地数据将被替换）`)) return;
-    } else if (hasLocalData && !syncCfg.id) {
-      if (!confirm(`检测到本地已有数据。\n\n此链接来自云同步「${urlId}」。\n\n是否切换到该同步并拉取数据？\n（当前本地数据将被替换）`)) return;
-    }
-
-    syncCfg.id = urlId;
-    saveSyncCfg();
-    updateSyncUI();
-    await cloudPull(urlId, { silent: true });
-  }
-
+  
   /* ===== 事件绑定 ===== */
   spinBtn.addEventListener('click', spin);
   checkinBtn.addEventListener('click', () => checkin(false));
@@ -1631,17 +1413,7 @@ function startTimer() {
   $('closeMenu').addEventListener('click', () => { menuOverlay.hidden = true; });
   menuOverlay.addEventListener('click', e => { if (e.target === menuOverlay) menuOverlay.hidden = true; });
 
-  $('syncCreate').addEventListener('click', cloudCreate);
-  $('syncConnect').addEventListener('click', async () => {
-    const raw = prompt('请粘贴另一台设备上的同步链接或同步 ID：');
-    if (!raw || !raw.trim()) return;
-    const clean = extractSyncId(raw);
-    if (!clean) { alert('没有识别到有效的同步 ID'); return; }
-    syncCfg.id = clean; saveSyncCfg(); updateSyncUI();
-    await cloudPull(clean);
-  });
-  $('syncPush').addEventListener('click', () => { if (syncCfg.id) cloudPush(syncCfg.id, false).catch(() => {}); });
-  $('syncPull').addEventListener('click', () => { if (syncCfg.id) cloudPull(syncCfg.id); });
+   $('syncPull').addEventListener('click', () => { if (syncCfg.id) cloudPull(syncCfg.id); });
   $('copySyncUrl').addEventListener('click', async () => {
     if (!syncCfg.id) return;
     const url = getSyncUrl();
