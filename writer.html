@@ -2,6 +2,9 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<script src="./global-bar.js">
+
+</script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>写作台</title>
 <meta name="theme-color" content="#6366f1">
@@ -392,7 +395,7 @@
     .sidebar {
       position: fixed;
       left: 0;
-      top: 48px;
+   top: calc(var(--gbar-h, 46px) + 48px);
       bottom: 0;
       width: 82%;
       max-width: 320px;
@@ -405,7 +408,7 @@
     .rightbar {
       position: fixed;
       right: 0;
-      top: 48px;
+    top: calc(var(--gbar-h, 46px) + 48px);
       bottom: 0;
       width: 82%;
       max-width: 320px;
@@ -1444,8 +1447,7 @@
       <button class="btn small" id="btnExport" title="导出">📤</button>
       <button class="btn small" id="btnImport" title="导入">📥</button>
       <button class="btn small" id="btnHelp" title="使用说明">❓</button>
-      <button class="btn small" id="btnPomodoro" title="番茄钟">🍅</button>
-      <button class="btn small" id="btnLockdown" title="小黑屋">🔒</button>
+            <button class="btn small" id="btnLockdown" title="小黑屋">🔒</button>
       <button class="btn small" id="btnEmergency" title="紧急退出">🆘</button>
       <button class="btn small mobile-only" id="btnMore" title="更多">⋯</button>
     </div>
@@ -1505,32 +1507,14 @@
   <button data-menu="focus">🎯 专注模式</button>
   <button data-menu="panel">ⓘ 右侧面板</button>
   <button data-menu="settings">⚙️ 外观设置</button>
-  <button data-menu="pomodoro">🍅 番茄钟</button>
-  <button data-menu="export">📤 导出</button>
+    <button data-menu="export">📤 导出</button>
   <button data-menu="import">📥 导入</button>
   <button data-menu="help">❓ 使用说明</button>
 </div>
 
 <!-- 抽屉遮罩 -->
 <div class="drawer-mask" id="drawerMask"></div>
-<!-- 番茄钟 -->
-<div class="pomodoro-panel" id="pomodoroPanel">
-  <h4>🍅 番茄钟</h4>
-  <div class="pomodoro-time" id="pomoTime">25:00</div>
-  <div class="pomodoro-label" id="pomoLabel">专注时间</div>
-  <div class="pomodoro-actions">
-    <button class="btn primary" id="pomoStart">开始</button>
-    <button class="btn" id="pomoReset">重置</button>
-  </div>
-   <div class="pomodoro-settings">
-    <label>专注 <input type="number" id="pomoWork" min="1" max="120" value="25">分</label>
-    <label>休息 <input type="number" id="pomoRest" min="1" max="60" value="5">分</label>
-  </div>
-  <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);margin-top:10px;cursor:pointer">
-    <input type="checkbox" id="pomoSound" style="accent-color:var(--accent)">
-     <span>开启提示音</span>
-  </label>
-</div>
+
 
 <!-- 外观设置面板 -->
 <div class="settings-panel" id="settingsPanel">
@@ -4486,8 +4470,7 @@ document.querySelector('#mobileMenu')?.addEventListener('click', e => {
         document.body.classList.add('drawer-right');
         break;
       case 'settings': document.querySelector('#btnSettings')?.click(); break;
-      case 'pomodoro': document.querySelector('#btnPomodoro')?.click(); break;
-      case 'export': document.querySelector('#btnExport')?.click(); break;
+          case 'export': document.querySelector('#btnExport')?.click(); break;
       case 'import': document.querySelector('#btnImport')?.click(); break;
       case 'help': openHelpModal(); break;
     }
@@ -5416,225 +5399,8 @@ document.querySelector('#btnEmergency')?.addEventListener('click', () => {
 setInterval(() => {
   if (prefs.lockdown && prefs.lockdown.active) updateLockdownBar();
 }, 1000);
-/* ============================================================
-   30. 番茄钟
-============================================================ */
-/* 番茄钟音效：用 Web Audio 生成，不需要外部文件 */
-function playPomoSound(type){
-  try{
-    const ctx = new (window.AudioContext || window.webkitAudioContext)();
-    const now = ctx.currentTime;
 
-    // 三种音效：workStart（开始专注）、workEnd（专注结束）、restEnd（休息结束）
-    const patterns = {
-      workStart: [
-        { f: 523.25, t: 0.0, d: 0.15 },  // C5
-        { f: 659.25, t: 0.18, d: 0.15 }, // E5
-        { f: 783.99, t: 0.36, d: 0.25 }, // G5
-      ],
-      workEnd: [
-        { f: 783.99, t: 0.0, d: 0.15 },  // G5
-        { f: 659.25, t: 0.18, d: 0.15 }, // E5
-        { f: 523.25, t: 0.36, d: 0.25 }, // C5
-      ],
-      restEnd: [
-        { f: 440.00, t: 0.0, d: 0.12 },  // A4
-        { f: 523.25, t: 0.15, d: 0.12 }, // C5
-        { f: 659.25, t: 0.30, d: 0.12 }, // E5
-        { f: 880.00, t: 0.45, d: 0.30 }, // A5
-      ],
-    };
 
-    const notes = patterns[type] || patterns.workEnd;
-
-    notes.forEach(n => {
-      const osc = ctx.createOscillator();
-      const gain = ctx.createGain();
-      osc.type = 'sine';
-      osc.frequency.value = n.f;
-      gain.gain.setValueAtTime(0, now + n.t);
-      gain.gain.linearRampToValueAtTime(0.25, now + n.t + 0.02);
-      gain.gain.exponentialRampToValueAtTime(0.001, now + n.t + n.d);
-      osc.connect(gain);
-      gain.connect(ctx.destination);
-      osc.start(now + n.t);
-      osc.stop(now + n.t + n.d + 0.05);
-    });
-
-    // 播完自动关闭音频上下文
-    setTimeout(() => ctx.close().catch(()=>{}), 2000);
-  }catch(e){
-    console.warn('音效播放失败', e);
-  }
-}
-let pomoTimer = null;
-let pomoState = { mode:'work', remaining:0, running:false, endAt:0 };
-
-const POMO_KEY = 'writer-pomodoro-v1';
-function savePomoState(){
-  try {
-    localStorage.setItem(POMO_KEY, JSON.stringify({
-      mode: pomoState.mode,
-      remaining: pomoState.remaining,
-      endAt: pomoState.endAt,
-      running: pomoState.running
-    }));
-  } catch(e){}
-}
-function clearPomoState(){
-  try { localStorage.removeItem(POMO_KEY); } catch(e){}
-}
-function restorePomoState(){
-  try {
-    const raw = localStorage.getItem(POMO_KEY);
-    if (!raw) return false;
-    const s = JSON.parse(raw);
-    if (!s || !s.mode) return false;
-    pomoState.mode = s.mode;
-    if (s.running && s.endAt) {
-      const left = (s.endAt - Date.now()) / 1000;
-      if (left > 0) {
-        pomoState.running = true;
-        pomoState.endAt = s.endAt;
-        pomoState.remaining = Math.round(left);
-        if (pomoTimer) clearInterval(pomoTimer);
-        pomoTimer = setInterval(pomoTick, 1000);
-      } else {
-        pomoState.running = false;
-        pomoState.remaining = 0;
-        clearPomoState();
-      }
-    } else if (s.remaining > 0) {
-      pomoState.remaining = s.remaining;
-      pomoState.running = false;
-    }
-    pomoRender();
-    return true;
-  } catch(e){ return false; }
-}
-
-function pomoInit(){
-  // 优先恢复上次状态
-  if (restorePomoState()) return;
-  const p = prefs.pomodoro;
-  pomoState.mode = 'work';
-  pomoState.remaining = p.workMin * 60;
-  pomoState.running = false;
-  pomoState.endAt = 0;
-  pomoRender();
-}
-
-function pomoRender(){
-  const p = prefs.pomodoro;
-  const total = pomoState.mode === 'work' ? p.workMin * 60 : p.restMin * 60;
-  const r = pomoState.remaining;
-  const m = Math.floor(r / 60);
-  const s = r % 60;
-  const elT = document.querySelector('#pomoTime');
-  const elL = document.querySelector('#pomoLabel');
-  const elBtn = document.querySelector('#pomoStart');
-  if (elT) elT.textContent = `${String(m).padStart(2,'0')}:${String(s).padStart(2,'0')}`;
-  if (elL) elL.textContent = pomoState.mode === 'work' ? '专注时间' : '休息时间';
-  if (elBtn) {
-    elBtn.textContent = pomoState.running ? '暂停' : (r === total ? '开始' : '继续');
-  }
-}
-
-function pomoTick(){
-  const p = prefs.pomodoro;
-  if (pomoState.running && pomoState.endAt) {
-    const left = Math.max(0, Math.round((pomoState.endAt - Date.now()) / 1000));
-    pomoState.remaining = left;
-    pomoRender();
-    if (left <= 0) {
-      pomoStop();
-      if (pomoState.mode === 'work') {
-        toast('🍅 专注结束，休息一下');
-        if (prefs.pomodoro.soundEnabled !== false) playPomoSound('workEnd');
-        pomoState.mode = 'rest';
-        pomoState.remaining = p.restMin * 60;
-      } else {
-        toast('☕ 休息结束，继续专注');
-        if (prefs.pomodoro.soundEnabled !== false) playPomoSound('restEnd');
-        pomoState.mode = 'work';
-        pomoState.remaining = p.workMin * 60;
-      }
-      pomoState.endAt = 0;
-      pomoRender();
-      clearPomoState();
-    }
-  }
-}
-function pomoStart(){
-  if (pomoState.running) return;
-  pomoState.running = true;
-  pomoState.endAt = Date.now() + pomoState.remaining * 1000;
-  if (pomoTimer) clearInterval(pomoTimer);
-  pomoTimer = setInterval(pomoTick, 1000);
-  pomoRender();
-  savePomoState();
-  if (prefs.pomodoro.soundEnabled !== false) {
-    playPomoSound('workStart');
-  }
-}
-
-function pomoStop(){
-  pomoState.running = false;
-  if (pomoTimer) { clearInterval(pomoTimer); pomoTimer = null; }
-  if (pomoState.endAt) {
-    pomoState.remaining = Math.max(0, Math.round((pomoState.endAt - Date.now()) / 1000));
-    pomoState.endAt = 0;
-  }
-  savePomoState();
-}
-
-function pomoReset(){
-  pomoStop();
-  const p = prefs.pomodoro;
-  pomoState.mode = 'work';
-  pomoState.remaining = p.workMin * 60;
-  pomoState.endAt = 0;
-  pomoRender();
-  clearPomoState();
-}
-
-document.querySelector('#btnPomodoro')?.addEventListener('click', e => {
-  e.stopPropagation();
-  const p = document.querySelector('#pomodoroPanel');
-  const wasOpen = p.classList.contains('show');
-  p.classList.toggle('show');
-  if (!wasOpen) {
-    document.querySelector('#pomoWork').value = prefs.pomodoro.workMin;
-    document.querySelector('#pomoRest').value = prefs.pomodoro.restMin;
-    const snd = document.querySelector('#pomoSound');
-    if (snd) snd.checked = prefs.pomodoro.soundEnabled !== false;
-    if (pomoState.remaining === 0) pomoInit();
-    else pomoRender();
-  }
-});
-
-document.addEventListener('click', e => {
-  const p = document.querySelector('#pomodoroPanel');
-  if (!p) return;
-  if (e.target.closest('#pomodoroPanel')) return;
-  if (e.target.closest('#btnPomodoro')) return;
-  p.classList.remove('show');
-});
-
-document.querySelector('#pomoStart')?.addEventListener('click', () => {
-  if (pomoState.running) { pomoStop(); pomoRender(); }
-  else pomoStart();
-});
-
-document.querySelector('#pomoReset')?.addEventListener('click', pomoReset);
-
-document.querySelector('#pomoWork')?.addEventListener('change', e => {
-  const v = Math.max(1, Math.min(120, parseInt(e.target.value,10)||25));
-  prefs.pomodoro.workMin = v;
-  e.target.value = v;
-  pomoReset();
-  saveNow();
-});
 
 document.querySelector('#pomoRest')?.addEventListener('change', e => {
   const v = Math.max(1, Math.min(60, parseInt(e.target.value,10)||5));
@@ -5692,7 +5458,6 @@ loadChapterIntoEditor();
 render();
 setStatus('已保存');
 applyAppearance();
-pomoInit();   // ← 加这一行，放在 loadAll 之后
 window.addEventListener('beforeunload',saveNow);
 window.addEventListener('beforeunload', e => {
   if (prefs.lockdown && prefs.lockdown.active) {
