@@ -1,0 +1,5 @@
+[
+  { "id": "w1", "name": "学习工作台", "icon": "📚", "desc": "背单词 · 复习计划 · 学习记录", "url": "./study.html",  "color": "#4f7cff" },
+  { "id": "w2", "name": "转盘工作台", "icon": "🎡", "desc": "随机转盘 · 抽签 · 选项决策",   "url": "./wheel.html",  "color": "#f5a623" },
+  { "id": "w3", "name": "写作工作台", "icon": "✍️", "desc": "灵感收集 · 草稿 · 写作统计",   "url": "./writer.html", "color": "#00b894" }
+]
