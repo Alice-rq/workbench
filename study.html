@@ -1593,14 +1593,14 @@ function save() {
       tasks: state.tasks, inbox: state.inbox, resources: state.resources,
       notes: state.notes, cards: state.cards, sessions: state.sessions,
       goals: state.goals, habits: state.habits, plans: state.plans,
-      pomodoroConfipomodoroConfig: {
-  focusDuration: state.pomodoro.focusDuration,
-  breakDuration: state.pomodoro.breakDuration,
-  running: state.pomodoro.running,
-  startAt: state.pomodoro.startAt,
-  elapsed: state.pomodoro.elapsed,
-  mode: state.pomodoro.mode
-}
+      pomodoroConfig: {          // ← 改对了
+        focusDuration: state.pomodoro.focusDuration,
+        breakDuration: state.pomodoro.breakDuration,
+        running: state.pomodoro.running,
+        startAt: state.pomodoro.startAt,
+        elapsed: state.pomodoro.elapsed,
+        mode: state.pomodoro.mode
+      }
     }));
   } catch (e) { toast('保存失败：存储空间可能已满'); }
 }
@@ -1863,36 +1863,19 @@ function completePhase(silent = false) {
     if (!silent) {
       const note = prompt(`🍅 番茄完成！本次学了什么？（可留空，${mins} 分钟已记录）`);
       state.sessions.push({ id: uid(), date: dateKey(), minutes: mins, at: Date.now(), kind: 'pomodoro', note: (note || '').trim() });
-      save(); toast('专注结束，休息一下');
+      toast('专注结束，休息一下');
     } else {
       state.sessions.push({ id: uid(), date: dateKey(), minutes: mins, at: Date.now(), kind: 'pomodoro', note: '' });
-      save(); toast('已跳过');
+      toast('已跳过');
     }
     p.mode = 'break'; p.elapsed = 0; p.startAt = null;
   } else {
     p.mode = 'focus'; p.elapsed = 0; p.startAt = null;
     if (!silent) toast('休息结束，继续专注');
   }
- // 恢复番茄钟
-if (state.pomodoro.running && state.pomodoro.startAt) {
-  const total = state.pomodoro.mode === 'focus'
-    ? state.pomodoro.focusDuration
-    : state.pomodoro.breakDuration;
-  const elapsed = Math.floor((Date.now() - state.pomodoro.startAt) / 1000);
-  if (elapsed >= total) {
-    // 已经超时了，重置
-    state.pomodoro.running = false;
-    state.pomodoro.elapsed = 0;
-    state.pomodoro.startAt = null;
-  } else {
-    state.pomodoro.elapsed = elapsed;
-    timerInterval = setInterval(tickPomodoro, 1000);
-  }
-  save();
-}
+  save();   // ← 确保保存
   render();
 }
-
 function toggleHabit(id) {
   const h = state.habits.find(x => x.id === id); if (!h) return;
   h.records = h.records || {};
@@ -4497,6 +4480,22 @@ function exportMarkdown() {
   applyTheme();
   await IDB.init();
   load();
+   // 恢复上次的番茄钟状态
+  if (state.pomodoro.running && state.pomodoro.startAt) {
+    const total = state.pomodoro.mode === 'focus'
+      ? state.pomodoro.focusDuration
+      : state.pomodoro.breakDuration;
+    const elapsed = Math.floor((Date.now() - state.pomodoro.startAt) / 1000);
+    if (elapsed >= total) {
+      state.pomodoro.running = false;
+      state.pomodoro.elapsed = 0;
+      state.pomodoro.startAt = null;
+      save();
+    } else {
+      state.pomodoro.elapsed = elapsed;
+      timerInterval = setInterval(tickPomodoro, 1000);
+    }
+  }
 
   if (!state.tasks.length && !state.notes.length && !state.inbox.length && !state.plans.length) {
     const now = Date.now();
