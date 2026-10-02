@@ -1064,42 +1064,96 @@
   }
 
   const timer = { total:0, remaining:0, endAt:0, running:false, tickId:null, label:'' };
-  function setTimer(seconds, label) {
-    stopTicking();
-    timer.total = seconds; timer.remaining = seconds; timer.running = false; timer.label = label || '';
-    updateTimerUI(); refreshSpinBtn();
-  }
+ /* ===== 计时器持久化 ===== */
+const TIMER_KEY = 'wheel-timer-v1';
+function saveTimerState(){
+  try {
+    localStorage.setItem(TIMER_KEY, JSON.stringify({
+      total: timer.total,
+      remaining: timer.remaining,
+      endAt: timer.endAt,
+      running: timer.running,
+      label: timer.label
+    }));
+  } catch(e){}
+}
+function clearTimerState(){
+  try { localStorage.removeItem(TIMER_KEY); } catch(e){}
+}
+function restoreTimerState(){
+  try {
+    const raw = localStorage.getItem(TIMER_KEY);
+    if (!raw) return;
+    const s = JSON.parse(raw);
+    if (!s || typeof s.total !== 'number') return;
+
+    timer.total = s.total;
+    timer.label = s.label || '';
+
+    if (s.running && s.endAt) {
+      const left = (s.endAt - Date.now()) / 1000;
+      if (left > 0) {
+        // 还在计时中，恢复
+        timer.remaining = left;
+        timer.endAt = s.endAt;
+        timer.running = true;
+        timer.tickId = setInterval(tickTimer, 100);
+      } else {
+        // 已经到时间了，标记为结束
+        timer.remaining = 0;
+        timer.running = false;
+        clearTimerState();
+      }
+    } else if (s.remaining > 0) {
+      // 暂停状态，恢复
+      timer.remaining = s.remaining;
+      timer.running = false;
+    }
+    updateTimerUI();
+    refreshSpinBtn();
+  } catch(e){}
+}
+ function setTimer(seconds, label) {
+  stopTicking();
+  timer.total = seconds; timer.remaining = seconds; timer.running = false; timer.label = label || '';
+  updateTimerUI(); refreshSpinBtn();
+  saveTimerState();
+}
   function stopTicking() { if (timer.tickId) { clearInterval(timer.tickId); timer.tickId = null; } }
-  function startTimer() {
-    if (timer.running || timer.remaining <= 0) return;
-    timer.running = true; timer.endAt = Date.now() + timer.remaining * 1000;
-    timer.tickId = setInterval(tickTimer, 100); updateTimerUI();
-  }
-  function pauseTimer() {
-    if (!timer.running) return;
-    timer.remaining = Math.max(0, (timer.endAt - Date.now()) / 1000);
-    timer.running = false; stopTicking(); updateTimerUI(); refreshSpinBtn();
-  }
+function startTimer() {
+  if (timer.running || timer.remaining <= 0) return;
+  timer.running = true; timer.endAt = Date.now() + timer.remaining * 1000;
+  timer.tickId = setInterval(tickTimer, 100); updateTimerUI();
+  saveTimerState();
+}
+ function pauseTimer() {
+  if (!timer.running) return;
+  timer.remaining = Math.max(0, (timer.endAt - Date.now()) / 1000);
+  timer.running = false; stopTicking(); updateTimerUI(); refreshSpinBtn();
+  saveTimerState();
+}
   function tickTimer() {
-    const left = (timer.endAt - Date.now()) / 1000;
-    if (left <= 0) { timer.remaining = 0; timer.running = false; stopTicking(); updateTimerUI(); refreshSpinBtn(); onTimerEnd(); return; }
-    timer.remaining = left; updateTimerUI(); updateLockHint();
-  }
-  function resetTimer() {
-    stopTicking(); timer.running = false;
-    if (timer.total === 0) return;
-    if (timer.remaining <= 0) { timer.total = 0; timer.remaining = 0; timer.label = ''; }
-    else { timer.remaining = timer.total; }
-    updateTimerUI(); refreshSpinBtn();
-  }
+  const left = (timer.endAt - Date.now()) / 1000;
+  if (left <= 0) { timer.remaining = 0; timer.running = false; stopTicking(); updateTimerUI(); refreshSpinBtn(); onTimerEnd(); clearTimerState(); return; }
+  timer.remaining = left; updateTimerUI(); updateLockHint();
+}
+ function resetTimer() {
+  stopTicking(); timer.running = false;
+  if (timer.total === 0) { clearTimerState(); return; }
+  if (timer.remaining <= 0) { timer.total = 0; timer.remaining = 0; timer.label = ''; }
+  else { timer.remaining = timer.total; }
+  updateTimerUI(); refreshSpinBtn();
+  saveTimerState();
+}
   function addMinutes(m) {
-    const sec = m * 60;
-    timer.total += sec; timer.remaining += sec;
-    if (timer.running) timer.endAt += sec * 1000;
-    if (timer.total < 0) timer.total = 0;
-    if (timer.remaining < 0) timer.remaining = 0;
-    updateTimerUI(); refreshSpinBtn();
-  }
+  const sec = m * 60;
+  timer.total += sec; timer.remaining += sec;
+  if (timer.running) timer.endAt += sec * 1000;
+  if (timer.total < 0) timer.total = 0;
+  if (timer.remaining < 0) timer.remaining = 0;
+  updateTimerUI(); refreshSpinBtn();
+  saveTimerState();
+}
   function updateTimerUI() {
     const secs = Math.max(0, Math.ceil(timer.remaining - 0.001));
     const m = Math.floor(secs/60), s = secs%60;
@@ -1757,6 +1811,7 @@
   }
 
   boot();
+   restoreTimerState();
   /* ===== 同步状态到总工作台 ===== */
   function syncStatusToHub(){
     try {
