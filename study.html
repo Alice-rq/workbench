@@ -2,6 +2,7 @@
 <html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
+<script src="./global-bar.js"></script>
 <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
 <meta name="theme-color" content="#4338ca">
 <meta name="apple-mobile-web-app-capable" content="yes">
@@ -1813,69 +1814,8 @@ function scheduleCard(card, rating) {
   card.due = Date.now() + base;
 }
 
-function pomodoroRemaining() {
-  const p = state.pomodoro;
-  const total = p.mode === 'focus' ? p.focusDuration : p.breakDuration;
-  return Math.max(0, total - p.elapsed);
-}
-function startPomodoro() {
-  state.pomodoro.running = true;
-  state.pomodoro.startAt = Date.now() - state.pomodoro.elapsed * 1000;
-  clearInterval(timerInterval);
-  timerInterval = setInterval(tickPomodoro, 1000);
-  tickPomodoro();
-  save();   // ← 加这行
-}
-function pausePomodoro() {
-  state.pomodoro.running = false;
-  clearInterval(timerInterval);
-  save();   // ← 加这行
-  render();
-}
-function resetPomodoro() {
-  state.pomodoro.running = false;
-  state.pomodoro.elapsed = 0;
-  state.pomodoro.startAt = null;   // ← 加这行
-  clearInterval(timerInterval);
-  save();   // ← 加这行
-  render();
-}
-function skipPhase() { completePhase(true); }
-function tickPomodoro() {
-  const p = state.pomodoro;
-  if (!p.running) return;
-  p.elapsed = Math.floor((Date.now() - p.startAt) / 1000);
-  const remaining = pomodoroRemaining();
-  const total = p.mode === 'focus' ? p.focusDuration : p.breakDuration;
-  const percent = total > 0 ? ((total - remaining) / total) * 100 : 0;
-  const t = document.getElementById('pomodoro-time');
-  const b = document.getElementById('pomodoro-bar');
-  if (t) t.textContent = fmtDuration(remaining);
-  if (b) b.style.width = percent + '%';
-  if (remaining <= 0) completePhase();
-}
-function completePhase(silent = false) {
-  const p = state.pomodoro;
-  clearInterval(timerInterval);
-  p.running = false;
-  if (p.mode === 'focus') {
-    const mins = Math.round(p.focusDuration / 60);
-    if (!silent) {
-      const note = prompt(`🍅 番茄完成！本次学了什么？（可留空，${mins} 分钟已记录）`);
-      state.sessions.push({ id: uid(), date: dateKey(), minutes: mins, at: Date.now(), kind: 'pomodoro', note: (note || '').trim() });
-      toast('专注结束，休息一下');
-    } else {
-      state.sessions.push({ id: uid(), date: dateKey(), minutes: mins, at: Date.now(), kind: 'pomodoro', note: '' });
-      toast('已跳过');
-    }
-    p.mode = 'break'; p.elapsed = 0; p.startAt = null;
-  } else {
-    p.mode = 'focus'; p.elapsed = 0; p.startAt = null;
-    if (!silent) toast('休息结束，继续专注');
-  }
-  save();   // ← 确保保存
-  render();
-}
+
+
 function toggleHabit(id) {
   const h = state.habits.find(x => x.id === id); if (!h) return;
   h.records = h.records || {};
@@ -2314,7 +2254,7 @@ const COMMANDS = [
   { id: 'go-goals', title: '跳转到目标', icon: '◎', run: () => { state.view = 'goals'; } },
   { id: 'go-stats', title: '跳转到统计', icon: '▤', run: () => { state.view = 'stats'; } },
   { id: 'go-settings', title: '跳转到设置', icon: '⚙', run: () => { state.view = 'settings'; } },
-  { id: 'pomodoro-start', title: '开始番茄钟', icon: '🍅', run: () => { state.view = 'today'; if (!state.pomodoro.running) startPomodoro(); } },
+  { id: 'pomodoro-start', title: '开始番茄钟', icon: '🍅', run: () => { state.view = 'today'; if (window.GlobalBar) GlobalBar.start('专注', 25 * 60); } },
   { id: 'new-task', title: '新建任务', icon: '+', run: async () => {
       const v = await showForm({
         title: '新建任务',
@@ -2506,7 +2446,6 @@ function renderToday() {
       </div>
     </div>` : ''}
 
-    ${renderPomodoroCard()}
     ${renderHabitsCard()}
 
     <div class="card">
@@ -3760,7 +3699,7 @@ function render() {
   renderMobileTabbar();
   renderHeader();
   document.getElementById('view').innerHTML = VIEWS[state.view].render();
-  if (state.pomodoro.running) tickPomodoro();
+  
   setTimeout(loadAttachments, 0);
   if (state.sidebarOpen) closeSidebar();
   window.scrollTo({ top: 0, behavior: 'instant' });
@@ -3929,21 +3868,6 @@ document.addEventListener('click',async (e) => {
       delStageTask(id);
       break;
 
-    /* --- 番茄钟 --- */
-    case 'start-pomodoro': startPomodoro(); render(); break;
-    case 'pause-pomodoro': pausePomodoro(); break;
-    case 'reset-pomodoro': resetPomodoro(); break;
-    case 'skip-pomodoro': skipPhase(); break;
-    case 'save-pomodoro-config': {
-      const f = Number(document.getElementById('p-focus').value) || 25;
-      const b = Number(document.getElementById('p-break').value) || 5;
-      state.pomodoro.focusDuration = Math.max(1, f) * 60;
-      state.pomodoro.breakDuration = Math.max(1, b) * 60;
-      state.pomodoro.elapsed = 0; state.pomodoro.running = false;
-      clearInterval(timerInterval);
-      save(); render(); toast('已保存番茄钟设置');
-      break;
-    }
 
     /* --- 习惯 --- */
     case 'add-habit': addHabit(); break;
@@ -4480,23 +4404,7 @@ function exportMarkdown() {
   applyTheme();
   await IDB.init();
   load();
-   // 恢复上次的番茄钟状态
-  if (state.pomodoro.running && state.pomodoro.startAt) {
-    const total = state.pomodoro.mode === 'focus'
-      ? state.pomodoro.focusDuration
-      : state.pomodoro.breakDuration;
-    const elapsed = Math.floor((Date.now() - state.pomodoro.startAt) / 1000);
-    if (elapsed >= total) {
-      state.pomodoro.running = false;
-      state.pomodoro.elapsed = 0;
-      state.pomodoro.startAt = null;
-      save();
-    } else {
-      state.pomodoro.elapsed = elapsed;
-      timerInterval = setInterval(tickPomodoro, 1000);
-    }
-  }
-
+   
   if (!state.tasks.length && !state.notes.length && !state.inbox.length && !state.plans.length) {
     const now = Date.now();
     // 示例任务
@@ -4648,6 +4556,22 @@ A: 3 个最佳，结构清晰。`,
 
   render();
 })();
+/* ===== 全局番茄钟结束时自动记录学习时长 ===== */
+window.addEventListener('global-pomodoro-end', function (e) {
+  const d = (e && e.detail) || {};
+  const mins = Math.round((d.totalSeconds || 0) / 60);
+  if (mins <= 0) return;
+  state.sessions.push({
+    id: uid(),
+    date: dateKey(),
+    minutes: mins,
+    at: Date.now(),
+    kind: 'pomodoro',
+    note: d.label || ''
+  });
+  save();
+  if (state.view === 'today' || state.view === 'stats') render();
+});
 /* ===== 同步状态到总工作台 ===== */
 function syncStatusToHub(){
   try {
