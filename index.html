@@ -1,0 +1,649 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+<title>我的工作台</title>
+
+<!-- ========== PWA 配置 ========== -->
+<link rel="manifest" href="./manifest.json" />
+<meta name="theme-color" content="#4f7cff" />
+<link rel="icon" href="./icon.svg" type="image/svg+xml" />
+<link rel="apple-touch-icon" href="./icon.svg" />
+<meta name="apple-mobile-web-app-capable" content="yes" />
+<meta name="mobile-web-app-capable" content="yes" />
+<meta name="apple-mobile-web-app-status-bar-style" content="default" />
+<meta name="apple-mobile-web-app-title" content="工作台" />
+
+<style>
+  :root {
+    --brand: #4f7cff;
+    --text: #1b2437;
+    --muted: #78849b;
+    --line: #e8ecf5;
+    --surface: #fff;
+  }
+
+  *, *::before, *::after { box-sizing: border-box; }
+
+  body {
+    margin: 0;
+    min-height: 100vh;
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", "PingFang SC",
+                 "Hiragino Sans GB", "Microsoft YaHei", sans-serif;
+    color: var(--text);
+    background:
+      radial-gradient(900px 520px at 8% -12%, #dbe6ff 0%, transparent 60%),
+      radial-gradient(820px 520px at 96% -6%, #ffe3f1 0%, transparent 55%),
+      #f4f6fb;
+    background-attachment: fixed;
+    -webkit-font-smoothing: antialiased;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  button, input { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--brand); outline-offset: 2px; border-radius: 10px; }
+
+  /* ================= 顶栏 ================= */
+  .topbar {
+    position: sticky; top: 0; z-index: 20;
+    display: flex; align-items: center; justify-content: space-between;
+    flex-wrap: wrap; gap: 10px 16px;
+    padding: 10px clamp(14px, 4vw, 32px);
+    padding-left: max(14px, env(safe-area-inset-left));
+    padding-right: max(14px, env(safe-area-inset-right));
+    background: rgba(255, 255, 255, .82);
+    backdrop-filter: blur(14px);
+    -webkit-backdrop-filter: blur(14px);
+    border-bottom: 1px solid var(--line);
+  }
+
+  .brand { display: flex; align-items: center; gap: 11px; min-width: 0; }
+  .logo {
+    width: 36px; height: 36px; flex: none;
+    border-radius: 11px; display: grid; place-items: center;
+    color: #fff; font-weight: 800; font-size: 16px;
+    background: linear-gradient(135deg, #4f7cff, #8b5cf6);
+    box-shadow: 0 8px 18px -10px rgba(79, 124, 255, .95);
+  }
+  .brand-text { display: flex; flex-direction: column; min-width: 0; }
+  .brand-text strong { font-size: 15px; line-height: 1.25; }
+  .brand-text span { font-size: 12px; color: var(--muted); }
+
+  .clock { display: flex; align-items: baseline; gap: 10px; }
+  .clock .date { font-size: clamp(11px, 2.6vw, 13px); color: var(--muted); white-space: nowrap; }
+  .clock .time {
+    font-size: clamp(15px, 3.8vw, 19px); font-weight: 700;
+    letter-spacing: -.4px; font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+  }
+
+  /* ================= 布局 ================= */
+  .wrap {
+    max-width: 1040px; margin: 0 auto;
+    padding: 24px clamp(14px, 4vw, 32px) 72px;
+    padding-bottom: calc(72px + env(safe-area-inset-bottom));
+  }
+
+  .toolbar {
+    display: flex; flex-wrap: wrap; align-items: center; gap: 9px;
+    margin-bottom: 20px;
+  }
+  .toolbar .spacer { flex: 1 1 auto; }
+
+  .btn {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 15px; font-size: 14px; font-weight: 600;
+    border: 1px solid var(--line); border-radius: 12px;
+    background: var(--surface); cursor: pointer;
+    transition: all .16s ease; white-space: nowrap;
+  }
+  .btn:hover { border-color: var(--brand); color: var(--brand); }
+  .btn:active { transform: scale(.97); }
+  .btn.primary {
+    background: var(--brand); border-color: var(--brand); color: #fff;
+    box-shadow: 0 10px 22px -14px var(--brand);
+  }
+  .btn.primary:hover { color: #fff; filter: brightness(1.07); }
+
+  /* ================= 卡片网格 ================= */
+  .grid {
+    display: grid;
+    gap: clamp(12px, 2vw, 18px);
+    grid-template-columns: repeat(auto-fill, minmax(min(100%, 250px), 1fr));
+  }
+
+  .card {
+    position: relative;
+    border-radius: 20px;
+    background: var(--surface);
+    border: 1px solid var(--line);
+    overflow: hidden;
+    box-shadow: 0 14px 30px -26px rgba(24, 39, 75, .8);
+    transition: transform .24s cubic-bezier(.2, .8, .3, 1),
+                box-shadow .24s ease, border-color .24s ease;
+  }
+  .card::before {
+    content: ""; position: absolute; inset: 0; pointer-events: none;
+    background: linear-gradient(140deg, var(--c) 0%, transparent 62%);
+    opacity: .07;
+  }
+  .card::after {
+    content: ""; position: absolute; left: 0; right: 0; top: 0; height: 3px;
+    background: var(--c); transform: scaleX(0); transform-origin: left;
+    transition: transform .3s ease;
+  }
+  .card:hover {
+    transform: translateY(-6px);
+    border-color: var(--c);
+    box-shadow: 0 26px 46px -28px rgba(24, 39, 75, .75);
+  }
+  .card:hover::after { transform: scaleX(1); }
+  .card:active { transform: translateY(-2px) scale(.99); }
+
+  .card-main {
+    display: flex; flex-direction: column; height: 100%;
+    padding: 22px; text-decoration: none; color: inherit;
+  }
+  .icon {
+    width: 52px; height: 52px; border-radius: 16px;
+    display: grid; place-items: center; font-size: 26px;
+    background: var(--c-soft);
+  }
+  .card h2 { margin: 17px 0 0; font-size: 17.5px; letter-spacing: -.2px; }
+  .card p {
+    margin: 7px 0 0; font-size: 13px; line-height: 1.6; color: var(--muted);
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+  .go {
+    margin-top: auto; padding-top: 16px;
+    display: flex; align-items: center; justify-content: space-between;
+    font-size: 13px; font-weight: 600; color: var(--c);
+  }
+  .go span:last-child { transition: transform .24s ease; }
+  .card:hover .go span:last-child { transform: translateX(5px); }
+
+  /* 卡片操作按钮 */
+  .card-ops {
+    position: absolute; top: 10px; right: 10px; z-index: 2;
+    display: flex; gap: 6px;
+    opacity: 0; transition: opacity .2s ease;
+  }
+  .card:hover .card-ops, .card:focus-within .card-ops { opacity: 1; }
+  @media (hover: none) { .card-ops { opacity: 1; } }
+
+  .op {
+    width: 32px; height: 32px; padding: 0;
+    border-radius: 10px; border: 1px solid var(--line);
+    background: rgba(255, 255, 255, .95);
+    display: grid; place-items: center;
+    font-size: 13px; cursor: pointer; transition: all .16s ease;
+  }
+  .op:hover { border-color: var(--c); background: #fff; transform: translateY(-1px); }
+
+  .empty {
+    padding: 56px 20px; text-align: center;
+    color: var(--muted); font-size: 14px;
+    border: 1px dashed var(--line); border-radius: 20px;
+  }
+
+  /* ================= 弹窗 ================= */
+  .modal {
+    position: fixed; inset: 0; z-index: 60;
+    display: none; align-items: center; justify-content: center;
+    padding: 16px;
+  }
+  .modal.is-open { display: flex; }
+  .modal-mask {
+    position: absolute; inset: 0;
+    background: rgba(18, 26, 42, .45);
+    backdrop-filter: blur(3px); -webkit-backdrop-filter: blur(3px);
+  }
+  .modal-card {
+    position: relative; width: 100%; max-width: 460px;
+    max-height: 88vh; overflow-y: auto;
+    background: #fff; border-radius: 22px; padding: 24px;
+    box-shadow: 0 30px 60px -24px rgba(18, 26, 42, .6);
+    animation: pop .26s cubic-bezier(.2, .8, .3, 1);
+  }
+  @keyframes pop {
+    from { opacity: 0; transform: translateY(14px) scale(.98); }
+    to   { opacity: 1; transform: none; }
+  }
+  .modal-card h2 { margin: 0 0 18px; font-size: 18px; }
+
+  .field { display: block; margin-bottom: 14px; }
+  .field > span {
+    display: block; font-size: 13px; font-weight: 600;
+    color: #48526b; margin-bottom: 6px;
+  }
+  .field i { color: #ff6b6b; font-style: normal; }
+  .field input {
+    width: 100%; padding: 11px 13px; font-size: 15px;
+    border: 1px solid var(--line); border-radius: 12px;
+    background: #f8fafd; transition: all .16s ease;
+  }
+  .field input:focus {
+    outline: none; border-color: var(--brand); background: #fff;
+    box-shadow: 0 0 0 3px rgba(79, 124, 255, .14);
+  }
+
+  .row { display: grid; grid-template-columns: 1fr 1.4fr; gap: 12px; }
+
+  .colors { display: flex; flex-wrap: wrap; gap: 8px; padding-top: 5px; }
+  .swatch {
+    width: 26px; height: 26px; padding: 0; border-radius: 50%;
+    background: var(--s); border: 2px solid transparent;
+    cursor: pointer; box-shadow: inset 0 0 0 2px #fff;
+    transition: transform .16s ease, border-color .16s ease;
+  }
+  .swatch.on { border-color: #1b2437; transform: scale(1.14); }
+
+  .modal-actions {
+    display: flex; justify-content: flex-end; gap: 10px;
+    margin-top: 22px;
+  }
+
+  /* ================= Toast ================= */
+  .toast {
+    position: fixed; left: 50%; bottom: calc(34px + env(safe-area-inset-bottom));
+    transform: translate(-50%, 16px);
+    padding: 11px 20px; font-size: 14px;
+    color: #fff; background: #1b2437; border-radius: 12px;
+    box-shadow: 0 18px 34px -16px rgba(27, 36, 55, .85);
+    opacity: 0; pointer-events: none; z-index: 99;
+    transition: opacity .26s ease, transform .26s ease;
+    max-width: 86vw; text-align: center;
+  }
+  .toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+  /* ================= 响应式微调 ================= */
+  @media (max-width: 480px) {
+    .brand-text span { display: none; }
+    .toolbar .btn { flex: 1 1 auto; justify-content: center; }
+    .row { grid-template-columns: 1fr; }
+    .modal-card { padding: 20px; border-radius: 18px; }
+  }
+  @media (min-width: 481px) and (max-width: 900px) {
+    .grid { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  }
+</style>
+</head>
+<body>
+
+<!-- ================= 顶栏 ================= -->
+<header class="topbar">
+  <div class="brand">
+    <div class="logo">W</div>
+    <div class="brand-text">
+      <strong>我的工作台</strong>
+      <span id="sub">加载中…</span>
+    </div>
+  </div>
+  <div class="clock">
+    <span class="date" id="date"></span>
+    <span class="time" id="time"></span>
+  </div>
+</header>
+
+<!-- ================= 主体 ================= -->
+<main class="wrap">
+  <div class="toolbar">
+    <button class="btn primary" id="addBtn">＋ 添加工作台</button>
+    <span class="spacer"></span>
+    <button class="btn" id="exportBtn">备份</button>
+    <button class="btn" id="importBtn">恢复</button>
+    <button class="btn" id="installBtn" hidden>安装到桌面</button>
+    <input type="file" id="fileInput" accept=".json,application/json" hidden />
+  </div>
+
+  <div class="grid" id="grid"></div>
+  <div class="empty" id="empty" hidden>
+    还没有工作台，点上面的「＋ 添加工作台」创建第一个吧
+  </div>
+</main>
+
+<!-- ================= 添加 / 编辑弹窗 ================= -->
+<div class="modal" id="modal">
+  <div class="modal-mask" data-close></div>
+  <div class="modal-card" role="dialog" aria-modal="true" aria-labelledby="modalTitle">
+    <h2 id="modalTitle">添加工作台</h2>
+    <form id="form" novalidate>
+      <label class="field">
+        <span>名称 <i>*</i></span>
+        <input id="f-name" type="text" maxlength="20" placeholder="例如：学习工作台" />
+      </label>
+
+      <div class="row">
+        <label class="field">
+          <span>图标（emoji）</span>
+          <input id="f-icon" type="text" maxlength="8" placeholder="📚" />
+        </label>
+        <div class="field">
+          <span>颜色</span>
+          <div class="colors" id="f-colors"></div>
+        </div>
+      </div>
+
+      <label class="field">
+        <span>描述</span>
+        <input id="f-desc" type="text" maxlength="40" placeholder="一句话说明（可留空）" />
+      </label>
+
+      <label class="field">
+        <span>链接 <i>*</i></span>
+        <input id="f-url" type="text" inputmode="url" placeholder="./学习工作台.html 或 https://..." />
+      </label>
+
+      <div class="modal-actions">
+        <button type="button" class="btn" data-close>取消</button>
+        <button type="submit" class="btn primary">保存</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+/* =========================================================
+   1. 数据层（localStorage 持久化）
+   ======================================================= */
+const STORAGE_KEY = 'my-workbench-items-v1';
+const COLORS = ['#4f7cff', '#8b5cf6', '#ec4899', '#ff6b6b',
+                '#f5a623', '#00b894', '#0abde3', '#64748b'];
+
+/* 首次打开时的默认工作台，可自行修改或删掉 */
+const DEFAULT_ITEMS = [
+  { id: 'w1', name: '学习工作台', icon: '📚', desc: '背单词 · 复习计划 · 学习记录', url: './学习工作台.html', color: '#4f7cff' },
+  { id: 'w2', name: '转盘工作台', icon: '🎡', desc: '随机转盘 · 抽签 · 选项决策',   url: './转盘工作台.html', color: '#f5a623' },
+  { id: 'w3', name: '写作工作台', icon: '✍️', desc: '灵感收集 · 草稿 · 写作统计',   url: './写作工作台.html', color: '#00b894' }
+];
+
+let items = loadItems();
+
+function loadItems() {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if (!raw) return DEFAULT_ITEMS.map(i => ({ ...i }));
+    const data = JSON.parse(raw);
+    return Array.isArray(data) ? data : DEFAULT_ITEMS.map(i => ({ ...i }));
+  } catch (e) {
+    return DEFAULT_ITEMS.map(i => ({ ...i }));
+  }
+}
+
+function saveItems() {
+  try {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(items));
+  } catch (e) {
+    toast('保存失败：浏览器存储空间可能已满');
+  }
+}
+
+/* =========================================================
+   2. 工具函数
+   ======================================================= */
+const $ = id => document.getElementById(id);
+
+function escapeHtml(str) {
+  return String(str == null ? '' : str).replace(/[&<>"']/g, c => ({
+    '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'
+  }[c]));
+}
+
+function tint(hex, alpha) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex || '');
+  if (!m) return `rgba(79, 124, 255, ${alpha})`;
+  const n = parseInt(m[1], 16);
+  return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`;
+}
+
+let toastTimer = null;
+function toast(msg) {
+  const el = $('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 1900);
+}
+
+/* =========================================================
+   3. 渲染卡片
+   ======================================================= */
+const grid = $('grid');
+const emptyEl = $('empty');
+
+function render() {
+  grid.innerHTML = items.map(w => {
+    const color = w.color || COLORS[0];
+    return `
+      <div class="card" style="--c:${escapeHtml(color)}; --c-soft:${tint(color, .13)}">
+        <a class="card-main" href="${escapeHtml(w.url)}">
+          <div class="icon">${escapeHtml(w.icon || '📁')}</div>
+          <h2>${escapeHtml(w.name)}</h2>
+          ${w.desc ? `<p>${escapeHtml(w.desc)}</p>` : ''}
+          <div class="go"><span>进入</span><span>→</span></div>
+        </a>
+        <div class="card-ops">
+          <button class="op" data-act="edit" data-id="${escapeHtml(w.id)}" title="编辑" aria-label="编辑">✏️</button>
+          <button class="op" data-act="del"  data-id="${escapeHtml(w.id)}" title="删除" aria-label="删除">🗑️</button>
+        </div>
+      </div>
+    `;
+  }).join('');
+
+  emptyEl.hidden = items.length > 0;
+  $('sub').textContent = `共 ${items.length} 个工作台`;
+
+  grid.querySelectorAll('[data-act]').forEach(btn => {
+    btn.addEventListener('click', e => {
+      e.preventDefault();
+      e.stopPropagation();
+      if (btn.dataset.act === 'edit') openForm(btn.dataset.id);
+      else removeItem(btn.dataset.id);
+    });
+  });
+}
+
+/* =========================================================
+   4. 添加 / 编辑
+   ======================================================= */
+const modal = $('modal');
+let editingId = null;
+let currentColor = COLORS[0];
+
+function renderSwatches(selected) {
+  const box = $('f-colors');
+  box.innerHTML = COLORS.map(c =>
+    `<button type="button" class="swatch${c === selected ? ' on' : ''}"
+             data-color="${c}" style="--s:${c}" aria-label="颜色 ${c}"></button>`
+  ).join('');
+  box.querySelectorAll('.swatch').forEach(b => {
+    b.addEventListener('click', () => {
+      box.querySelectorAll('.swatch').forEach(x => x.classList.remove('on'));
+      b.classList.add('on');
+      currentColor = b.dataset.color;
+    });
+  });
+}
+
+function openForm(id) {
+  editingId = id || null;
+  const item = id ? items.find(i => i.id === id) : null;
+
+  $('modalTitle').textContent = item ? '编辑工作台' : '添加工作台';
+  $('f-name').value = item ? item.name : '';
+  $('f-icon').value = item ? (item.icon || '') : '';
+  $('f-desc').value = item ? (item.desc || '') : '';
+  $('f-url').value  = item ? item.url : '';
+
+  currentColor = item ? (item.color || COLORS[0])
+                      : COLORS[Math.floor(Math.random() * COLORS.length)];
+  renderSwatches(currentColor);
+
+  modal.classList.add('is-open');
+  document.body.style.overflow = 'hidden';
+  setTimeout(() => $('f-name').focus(), 60);
+}
+
+function closeForm() {
+  modal.classList.remove('is-open');
+  document.body.style.overflow = '';
+  editingId = null;
+}
+
+$('form').addEventListener('submit', e => {
+  e.preventDefault();
+
+  const name = $('f-name').value.trim();
+  const url  = $('f-url').value.trim();
+
+  if (!name) { toast('请填写名称'); $('f-name').focus(); return; }
+  if (!url)  { toast('请填写链接'); $('f-url').focus(); return; }
+
+  const data = {
+    name,
+    icon: $('f-icon').value.trim() || '📁',
+    desc: $('f-desc').value.trim(),
+    url,
+    color: currentColor
+  };
+
+  if (editingId) {
+    const idx = items.findIndex(i => i.id === editingId);
+    if (idx > -1) items[idx] = { ...items[idx], ...data };
+    toast('已更新');
+  } else {
+    items.push({ id: 'w' + Date.now().toString(36), ...data });
+    toast('已添加');
+  }
+
+  saveItems();
+  render();
+  closeForm();
+});
+
+/* 删除 */
+function removeItem(id) {
+  const item = items.find(i => i.id === id);
+  if (!item) return;
+  if (!confirm(`确定删除「${item.name}」吗？此操作不可撤销。`)) return;
+  items = items.filter(i => i.id !== id);
+  saveItems();
+  render();
+  toast('已删除');
+}
+
+/* 弹窗关闭 */
+modal.querySelectorAll('[data-close]').forEach(el => {
+  el.addEventListener('click', closeForm);
+});
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape' && modal.classList.contains('is-open')) closeForm();
+});
+
+$('addBtn').addEventListener('click', () => openForm(null));
+
+/* =========================================================
+   5. 备份 / 恢复
+   ======================================================= */
+$('exportBtn').addEventListener('click', () => {
+  const blob = new Blob([JSON.stringify(items, null, 2)], { type: 'application/json' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = `工作台备份-${new Date().toISOString().slice(0, 10)}.json`;
+  document.body.appendChild(a);
+  a.click();
+  a.remove();
+  URL.revokeObjectURL(a.href);
+  toast('已导出备份文件');
+});
+
+$('importBtn').addEventListener('click', () => $('fileInput').click());
+
+$('fileInput').addEventListener('change', e => {
+  const file = e.target.files && e.target.files[0];
+  if (!file) return;
+
+  const reader = new FileReader();
+  reader.onload = () => {
+    try {
+      const data = JSON.parse(reader.result);
+      if (!Array.isArray(data)) throw new Error('bad');
+      if (!confirm('导入将覆盖当前的工作台列表，确定继续吗？')) return;
+
+      items = data.map((d, i) => ({
+        id: d.id || 'w' + Date.now().toString(36) + i,
+        name: d.name || '未命名',
+        icon: d.icon || '📁',
+        desc: d.desc || '',
+        url: d.url || '#',
+        color: /^#[0-9a-f]{6}$/i.test(d.color) ? d.color : COLORS[i % COLORS.length]
+      }));
+
+      saveItems();
+      render();
+      toast('导入成功');
+    } catch (err) {
+      toast('文件格式不正确');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value = '';
+});
+
+/* =========================================================
+   6. 日期时间
+   ======================================================= */
+function updateClock() {
+  const d = new Date();
+  const week = ['日', '一', '二', '三', '四', '五', '六'][d.getDay()];
+  const p = n => String(n).padStart(2, '0');
+
+  $('date').textContent =
+    `${d.getFullYear()}年${d.getMonth() + 1}月${d.getDate()}日 星期${week}`;
+  $('time').textContent =
+    `${p(d.getHours())}:${p(d.getMinutes())}:${p(d.getSeconds())}`;
+}
+updateClock();
+setInterval(updateClock, 1000);
+
+/* =========================================================
+   7. PWA：Service Worker + 安装提示
+   ======================================================= */
+if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('./sw.js').catch(() => {});
+  });
+}
+
+let deferredPrompt = null;
+const installBtn = $('installBtn');
+
+window.addEventListener('beforeinstallprompt', e => {
+  e.preventDefault();
+  deferredPrompt = e;
+  installBtn.hidden = false;
+});
+
+installBtn.addEventListener('click', async () => {
+  if (!deferredPrompt) return;
+  deferredPrompt.prompt();
+  await deferredPrompt.userChoice;
+  deferredPrompt = null;
+  installBtn.hidden = true;
+});
+
+window.addEventListener('appinstalled', () => {
+  installBtn.hidden = true;
+  toast('已添加到桌面');
+});
+
+/* =========================================================
+   8. 启动
+   ======================================================= */
+render();
+</script>
+</body>
+</html>
