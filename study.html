@@ -1593,7 +1593,14 @@ function save() {
       tasks: state.tasks, inbox: state.inbox, resources: state.resources,
       notes: state.notes, cards: state.cards, sessions: state.sessions,
       goals: state.goals, habits: state.habits, plans: state.plans,
-      pomodoroConfig: { focusDuration: state.pomodoro.focusDuration, breakDuration: state.pomodoro.breakDuration }
+      pomodoroConfipomodoroConfig: {
+  focusDuration: state.pomodoro.focusDuration,
+  breakDuration: state.pomodoro.breakDuration,
+  running: state.pomodoro.running,
+  startAt: state.pomodoro.startAt,
+  elapsed: state.pomodoro.elapsed,
+  mode: state.pomodoro.mode
+}
     }));
   } catch (e) { toast('保存失败：存储空间可能已满'); }
 }
@@ -1611,10 +1618,15 @@ function load() {
     state.goals     = d.goals || [];
     state.habits    = d.habits || [];
     state.plans     = d.plans || [];
-    if (d.pomodoroConfig) {
-      state.pomodoro.focusDuration = d.pomodoroConfig.focusDuration || 25 * 60;
-      state.pomodoro.breakDuration = d.pomodoroConfig.breakDuration || 5 * 60;
-    }
+   if (d.pomodoroConfig) {
+  const cfg = d.pomodoroConfig;
+  state.pomodoro.focusDuration = cfg.focusDuration || 25 * 60;
+  state.pomodoro.breakDuration = cfg.breakDuration || 5 * 60;
+  state.pomodoro.mode = cfg.mode || 'focus';
+  state.pomodoro.running = !!cfg.running;
+  state.pomodoro.startAt = cfg.startAt || null;
+  state.pomodoro.elapsed = cfg.elapsed || 0;
+}
   } catch (e) { console.warn('读取失败', e); }
 }
 
@@ -1812,9 +1824,22 @@ function startPomodoro() {
   clearInterval(timerInterval);
   timerInterval = setInterval(tickPomodoro, 1000);
   tickPomodoro();
+  save();   // ← 加这行
 }
-function pausePomodoro() { state.pomodoro.running = false; clearInterval(timerInterval); render(); }
-function resetPomodoro() { state.pomodoro.running = false; state.pomodoro.elapsed = 0; clearInterval(timerInterval); render(); }
+function pausePomodoro() {
+  state.pomodoro.running = false;
+  clearInterval(timerInterval);
+  save();   // ← 加这行
+  render();
+}
+function resetPomodoro() {
+  state.pomodoro.running = false;
+  state.pomodoro.elapsed = 0;
+  state.pomodoro.startAt = null;   // ← 加这行
+  clearInterval(timerInterval);
+  save();   // ← 加这行
+  render();
+}
 function skipPhase() { completePhase(true); }
 function tickPomodoro() {
   const p = state.pomodoro;
@@ -1848,6 +1873,23 @@ function completePhase(silent = false) {
     p.mode = 'focus'; p.elapsed = 0; p.startAt = null;
     if (!silent) toast('休息结束，继续专注');
   }
+ // 恢复番茄钟
+if (state.pomodoro.running && state.pomodoro.startAt) {
+  const total = state.pomodoro.mode === 'focus'
+    ? state.pomodoro.focusDuration
+    : state.pomodoro.breakDuration;
+  const elapsed = Math.floor((Date.now() - state.pomodoro.startAt) / 1000);
+  if (elapsed >= total) {
+    // 已经超时了，重置
+    state.pomodoro.running = false;
+    state.pomodoro.elapsed = 0;
+    state.pomodoro.startAt = null;
+  } else {
+    state.pomodoro.elapsed = elapsed;
+    timerInterval = setInterval(tickPomodoro, 1000);
+  }
+  save();
+}
   render();
 }
 
