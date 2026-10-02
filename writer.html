@@ -1376,6 +1376,16 @@
     font-size: .95em;
     cursor: default;
   }
+  /* 顶栏图标按钮紧凑化 */
+  .topbar-right .btn.small {
+    min-width: 32px;
+    padding: 5px 6px;
+    font-size: 15px;
+    line-height: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
 </style>
 </head>
 <body>
@@ -1421,22 +1431,22 @@
       <span>🔒 小黑屋</span>
       <span id="lockdownProgress">0 / 1000 字</span>
     </div>
-    <div class="topbar-right">
-      <button class="btn small" id="btnSearch">🔍 搜索</button>
-      <button class="btn small" id="btnReplace">替换</button>
-      <button class="btn small" id="btnStats">统计</button>
-      <button class="btn small" id="btnPreview">预览</button>
-      <button class="btn small" id="btnRevision" title="修订模式">📝 修订</button>
+       <div class="topbar-right">
+      <button class="btn small" id="btnSearch" title="搜索">🔍</button>
+      <button class="btn small" id="btnReplace" title="查找替换">🔀</button>
+      <button class="btn small" id="btnStats" title="写作统计">📊</button>
+      <button class="btn small" id="btnPreview" title="预览">👁</button>
+      <button class="btn small" id="btnRevision" title="修订模式">📝</button>
       <button class="btn small" id="btnTypewriter" title="打字机模式">⌨️</button>
-      <button class="btn small" id="btnFocus">专注</button>
-      <button class="btn small" id="btnTheme">🌙</button>
+      <button class="btn small" id="btnFocus" title="专注模式">🎯</button>
+      <button class="btn small" id="btnTheme" title="切换主题">🌙</button>
       <button class="btn small" id="btnSettings" title="外观设置">⚙️</button>
-      <button class="btn small" id="btnExport">导出</button>
-      <button class="btn small" id="btnImport">导入</button>
-      <button class="btn small" id="btnHelp">❓ 说明</button>
+      <button class="btn small" id="btnExport" title="导出">📤</button>
+      <button class="btn small" id="btnImport" title="导入">📥</button>
+      <button class="btn small" id="btnHelp" title="使用说明">❓</button>
       <button class="btn small" id="btnPomodoro" title="番茄钟">🍅</button>
       <button class="btn small" id="btnLockdown" title="小黑屋">🔒</button>
-      <button class="btn small" id="btnEmergency" title="紧急退出">🆘 退出</button>
+      <button class="btn small" id="btnEmergency" title="紧急退出">🆘</button>
       <button class="btn small mobile-only" id="btnMore" title="更多">⋯</button>
     </div>
   </header>
@@ -1518,7 +1528,7 @@
   </div>
   <label style="display:flex;align-items:center;gap:6px;font-size:12px;color:var(--text-2);margin-top:10px;cursor:pointer">
     <input type="checkbox" id="pomoSound" style="accent-color:var(--accent)">
-      <span>开启提示音</span>
+     <span>开启提示音</span>
   </label>
 </div>
 
@@ -1926,8 +1936,8 @@ function render(){
   document.documentElement.style.setProperty('--page-width',prefs.pageWidth+'px');
   document.body.classList.toggle('focus',prefs.focus);
   $('#btnTheme').textContent=prefs.theme==='dark'?'☀️':'🌙';
-  $('#btnPreview').textContent=prefs.preview?'编辑':'预览';
-  $('#btnFocus').textContent=prefs.focus?'退出专注':'专注';
+    $('#btnPreview').title = prefs.preview ? '返回编辑' : '预览';
+  $('#btnFocus').title = prefs.focus ? '退出专注' : '专注模式';
   $('#btnTypewriter').style.background=prefs.typewriter?'var(--accent-soft)':'';
   $('#btnTypewriter').style.borderColor=prefs.typewriter?'var(--accent)':'';
   $('#statusTw').style.display=prefs.typewriter?'':'none';
