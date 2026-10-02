@@ -469,12 +469,7 @@
   <div class="dialog card">
     <div class="dialog-head"><h3>设置</h3><button class="close-btn" id="closeMenu" type="button">✕</button></div>
     <div class="dialog-body">
-    
-      </div>
-
- 
-
-      <div class="switch-row">
+          <div class="switch-row">
         <div><div class="lbl">提示音</div><div class="sub">计时结束与打卡时播放</div></div>
         <button class="switch" id="soundSwitch" type="button"></button>
       </div>
@@ -892,9 +887,7 @@
     timer.label = '';
     updateTimerUI();
     refreshSpinBtn();
-
-    if (syncCfg.id && syncCfg.autoPush) cloudPush(syncCfg.id, true).catch(() => {});
-    checkBackup();
+       checkBackup();
   }
 
   function getTodayScore() {
@@ -955,8 +948,7 @@
     }
     if (currentTask && currentTask.item.id === last.activityId) { currentTask.settled = false; updateCheckinBtn(); }
     saveState(); updateScoreUI(-last.delta || 0); renderHistory(); updateUndoBtn();
-    if (syncCfg.id && syncCfg.autoPush) cloudPush(syncCfg.id, true).catch(() => {});
-  }
+     }
   function updateUndoBtn() { $('undoBtn').disabled = state.history.length === 0; }
   function renderHistory() {
     historyList.innerHTML = '';
@@ -1359,7 +1351,6 @@ function startTimer() {
     const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
     $('themeSwitch').classList.toggle('on', isDark);
     $('speedRange').value = state.settings.spinDuration || 4200;
-    updateSyncUI();
   }
 
   /* ===== 备份提醒 ===== */
@@ -1413,46 +1404,7 @@ function startTimer() {
   $('closeMenu').addEventListener('click', () => { menuOverlay.hidden = true; });
   menuOverlay.addEventListener('click', e => { if (e.target === menuOverlay) menuOverlay.hidden = true; });
 
-   $('syncPull').addEventListener('click', () => { if (syncCfg.id) cloudPull(syncCfg.id); });
-  $('copySyncUrl').addEventListener('click', async () => {
-    if (!syncCfg.id) return;
-    const url = getSyncUrl();
-    try { await navigator.clipboard.writeText(url); setSyncStatus('链接已复制', 'ok'); setTimeout(() => setSyncStatus('', ''), 2000); }
-    catch (e) { prompt('请手动复制同步链接：', url); }
-  });
-  $('syncDisconnect').addEventListener('click', () => {
-    if (!confirm('断开云同步？本地数据不受影响。')) return;
-    syncCfg.id = null; syncCfg.autoPush = false; saveSyncCfg(); updateSyncUI(); setSyncStatus('已断开', '');
-  });
-  $('autoSyncSwitch').addEventListener('click', () => {
-    syncCfg.autoPush = !syncCfg.autoPush; saveSyncCfg(); updateSyncUI();
-  });
-
-  // 引导
-  $('onboardSkip').addEventListener('click', () => { onboardOverlay.hidden = true; });
-  $('onboardCreate').addEventListener('click', () => {
-    onboardOverlay.hidden = true;
-    syncSettingsUI();
-    menuOverlay.hidden = false;
-    setTimeout(() => { cloudCreate(); }, 300);
-  });
-  onboardOverlay.addEventListener('click', e => { if (e.target === onboardOverlay) onboardOverlay.hidden = true; });
-
-  // 同步链接弹窗
-  $('closeSyncUrl').addEventListener('click', () => { syncUrlOverlay.hidden = true; });
-  syncUrlOverlay.addEventListener('click', e => { if (e.target === syncUrlOverlay) syncUrlOverlay.hidden = true; });
-  $('copySyncUrlBtn').addEventListener('click', async () => {
-    const url = getSyncUrl();
-    try { await navigator.clipboard.writeText(url); $('copySyncUrlBtn').textContent = '✓ 已复制'; setTimeout(() => { $('copySyncUrlBtn').textContent = '复制链接'; }, 1800); }
-    catch (e) { prompt('请手动复制链接：', url); }
-  });
-  $('openSyncUrlBtn').addEventListener('click', () => {
-    const url = getSyncUrl();
-    if (confirm('在新标签页打开这个链接？\n（用于验证链接是否有效）')) {
-      window.open(url, '_blank');
-    }
-  });
-
+ 
   // 备份提醒
   $('backupExportBtn').addEventListener('click', () => { exportData(); });
   $('backupDismissBtn').addEventListener('click', () => { $('backupBanner').hidden = true; });
@@ -1472,8 +1424,7 @@ function startTimer() {
     if (!confirm('确定清空积分与所有记录吗？\n（活动设置不受影响）')) return;
     state.score = 0; state.history = []; state.streak = { count: 0, lastDate: null };
     saveState(); updateScoreUI(0); renderHistory(); updateUndoBtn();
-    if (syncCfg.id && syncCfg.autoPush) cloudPush(syncCfg.id, true).catch(() => {});
-  });
+   });
 
   $('confirmDone').addEventListener('click', () => { confirmOverlay.hidden = true; checkin(false); });
   $('confirmLater').addEventListener('click', () => { confirmOverlay.hidden = true; });
@@ -1572,13 +1523,7 @@ function startTimer() {
     }, 30000);
     state._lastDay = todayStr();
 
-    // 检查 URL 中的同步参数
-    await checkUrlSync();
-
-    // 检查首次访问
-    checkFirstVisit();
-
-    // 检查备份提醒
+     // 检查备份提醒
     checkBackup();
   }
 
