@@ -959,8 +959,9 @@
       <label>转动速度 <span id="speedLabel">4.2 秒</span></label>
       <input type="range" id="speedRange" min="2000" max="8000" step="500" value="4200">
     </div>
-    <div class="modal-actions" style="justify-content:space-between">
+      <div class="modal-actions" style="justify-content:space-between">
       <div style="display:flex;gap:6px">
+        <button type="button" class="btn" id="wheelUndoBtn">↶ 撤销上一条积分</button>
         <button type="button" class="btn" id="wheelExportBtn">导出数据</button>
         <button type="button" class="btn" id="wheelImportBtn">导入数据</button>
       </div>
@@ -1596,6 +1597,53 @@ function addScore(delta, reason, activityId) {
   saveWheel();
   updateScoreUI(delta);
 }
+/* -------- 撤销上一条积分 -------- */
+function undoLastScore() {
+  if (!wheelState.history || !wheelState.history.length) {
+    toast('还没有积分记录，无法撤销');
+    return;
+  }
+
+  const last = wheelState.history[0];
+  const d = Math.round(last.delta || 0);
+  const sign = d > 0 ? '+' : '';
+  const name = last.reason || '未知活动';
+
+  if (!confirm(
+    '撤销上一次打卡？\n\n' +
+    '活动：「' + name + '」\n' +
+    '积分：' + sign + d + ' 分\n\n' +
+    '总分将同步回退。'
+  )) return;
+
+  /* 1. 从 history 里移除这一条 */
+  wheelState.history.shift();
+
+  /* 2. 回退总分 */
+  wheelState.score -= d;
+  if (wheelState.score < 0) wheelState.score = 0;
+
+  /* 3. 如果是加分记录，且是今天加的，回退连续天数 */
+  if (d > 0) {
+    const todayKey = dateKey();
+    const recordKey = dateKey(new Date(last.time));
+    if (wheelState.streak.lastDate === todayKey && recordKey === todayKey) {
+      wheelState.streak.count = Math.max(0, wheelState.streak.count - 1);
+      if (wheelState.streak.count === 0) wheelState.streak.lastDate = null;
+    }
+  }
+
+  /* 4. 如果当前抽中的正好是这条活动，让它恢复"未打卡"状态 */
+  if (currentPick && last.activityId && currentPick.item.id === last.activityId && currentPick.settled) {
+    currentPick.settled = false;
+    updateCheckinBtn();
+  }
+
+  /* 5. 保存并刷新 UI */
+  saveWheel();
+  updateScoreUI(-d || 0);
+  toast('已撤销：「' + name + '」 ' + sign + d + ' 分');
+}
 
 function updateStreak() {
   const today = dateKey();
@@ -1989,6 +2037,10 @@ $('speedRange').addEventListener('input', e => {
   wheelState.settings.spinDuration = Math.max(2000, Math.min(8000, Number(e.target.value) || 4200));
   $('speedLabel').textContent = (wheelState.settings.spinDuration / 1000).toFixed(1) + ' 秒';
   saveWheel();
+});
+
+$('wheelUndoBtn').addEventListener('click', () => {
+  undoLastScore();
 });
 
 $('wheelExportBtn').addEventListener('click', () => {
