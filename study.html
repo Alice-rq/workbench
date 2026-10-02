@@ -7,7 +7,7 @@
 <meta name="theme-color" content="#4338ca">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="遴选备考">
-<title>遴选备考工作台</title>
+<title>学习工作台</title>
 <link rel="manifest" id="pwa-manifest">
 <link rel="apple-touch-icon" id="pwa-icon">
 <style>
@@ -956,6 +956,60 @@
 .btn-danger-solid:hover {
   filter: brightness(1.08);
 }
+/* ===== 倒计时 ===== */
+.countdown-grid {
+  display: grid; gap: 12px;
+  grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+}
+.countdown-item {
+  position: relative;
+  padding: 14px 16px 12px;
+  border-radius: 12px;
+  border: 1px solid var(--border);
+  background: var(--card);
+  transition: all .16s;
+}
+.countdown-item:hover {
+  border-color: var(--accent);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-md);
+}
+.countdown-icon { font-size: 16px; margin-right: 4px; }
+.countdown-name {
+  font-size: 13px; font-weight: 650; color: var(--muted);
+  white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
+  margin-bottom: 6px;
+}
+.countdown-days {
+  font-size: 30px; font-weight: 800; line-height: 1;
+  font-variant-numeric: tabular-nums; letter-spacing: -.02em;
+  color: var(--accent);
+}
+.countdown-days small {
+  font-size: 13px; font-weight: 600;
+  color: var(--muted); margin-left: 3px;
+}
+.countdown-days.urgent { color: var(--danger); }
+.countdown-days.soon { color: var(--warn); }
+.countdown-days.over { color: var(--faint); }
+.countdown-date {
+  font-size: 11.5px; color: var(--faint); margin-top: 4px;
+  font-variant-numeric: tabular-nums;
+}
+.countdown-actions {
+  position: absolute; top: 8px; right: 8px;
+  display: flex; gap: 2px;
+  opacity: 0; transition: opacity .13s;
+}
+.countdown-item:hover .countdown-actions { opacity: 1; }
+.countdown-action {
+  width: 24px; height: 24px; border-radius: 6px;
+  font-size: 12px; color: var(--muted);
+  display: flex; align-items: center; justify-content: center;
+  transition: all .13s;
+}
+.countdown-action:hover { background: var(--hover); color: var(--text); }
+.countdown-action.danger:hover { background: rgba(220,38,38,.1); color: var(--danger); }
 </style>
 </head>
 <body>
@@ -992,9 +1046,9 @@
 <div id="app">
   <aside class="sidebar" id="sidebar">
     <div class="brand">
-      <div class="brand-logo">遴</div>
+      <div class="brand-logo">学</div>
       <div>
-        <div>遴选备考</div>
+        <div>学习工作台</div>
         <div class="brand-sub">Study Workbench</div>
       </div>
     </div>
@@ -1360,6 +1414,7 @@ let state = {
     cardsOnlyDue: false, cardsWithSpace: true,
     includeTimestamp: true
   },
+  countdowns: [],   // [{id, name, targetDate, icon, createdAt}]
   sidebarOpen: false
 };
 let timerInterval = null;
@@ -1594,6 +1649,7 @@ function save() {
       tasks: state.tasks, inbox: state.inbox, resources: state.resources,
       notes: state.notes, cards: state.cards, sessions: state.sessions,
       goals: state.goals, habits: state.habits, plans: state.plans,
+      countdowns: state.countdowns,
       pomodoroConfig: {          // ← 改对了
         focusDuration: state.pomodoro.focusDuration,
         breakDuration: state.pomodoro.breakDuration,
@@ -1619,6 +1675,7 @@ function load() {
     state.goals     = d.goals || [];
     state.habits    = d.habits || [];
     state.plans     = d.plans || [];
+state.countdowns = d.countdowns || [];
    if (d.pomodoroConfig) {
   const cfg = d.pomodoroConfig;
   state.pomodoro.focusDuration = cfg.focusDuration || 25 * 60;
@@ -1785,6 +1842,11 @@ function habitStreak(h) {
   return streak;
 }
 function habitTotal(h) { return Object.keys(h.records || {}).length; }
+function daysLeft(targetDate) {
+  const today = new Date(); today.setHours(0, 0, 0, 0);
+  const t = new Date(targetDate + 'T00:00:00');
+  return Math.round((t - today) / 86400000);
+}
 function getReviewStats() {
   const now = Date.now(), day = 86400000;
   let newC = 0, learning = 0, mature = 0, dueToday = 0, dueTomorrow = 0, dueWeek = 0, dueLater = 0;
@@ -2215,7 +2277,7 @@ function generateReport(range) {
   const habitChecks = state.habits.reduce((acc, h) => acc + Object.keys(h.records || {}).filter(d => d >= start && d <= end).length, 0);
   const topNotes = sessions.filter(s => s.note).slice(-6);
   const lines = [];
-  lines.push(`【${range === 'week' ? '本周' : '本月'}备考复盘】${label}`);
+  lines.push(`【${range === 'week' ? '本周' : '本月'}学习复盘】${label}`);
   lines.push('');
   lines.push(`📚 学习时长：${fmtMinutes(minutes)}（${sessions.length} 次记录）`);
   lines.push(`🍅 番茄个数：${pomodoros}`);
@@ -2445,7 +2507,7 @@ function renderToday() {
         }).join('')}
       </div>
     </div>` : ''}
-
+    ${renderCountdownCard()}
     ${renderHabitsCard()}
 
     <div class="card">
@@ -2517,6 +2579,34 @@ function renderPomodoroCard() {
   `;
 }
 
+function renderCountdownCard() {
+  const list = state.countdowns.slice().sort((a, b) => a.targetDate < b.targetDate ? -1 : 1);
+  return `
+    <div class="card">
+      <div class="card-head">
+        <div class="card-title"><span class="dot" style="background:var(--gold)"></span>倒计时</div>
+        <button class="btn btn-sm" data-action="countdown-add">+ 添加</button>
+      </div>
+      ${list.length ? `
+        <div class="countdown-grid">
+          ${list.map(c => {
+            const d = daysLeft(c.targetDate);
+            const cls = d < 0 ? 'over' : d <= 7 ? 'urgent' : d <= 30 ? 'soon' : '';
+            return `
+            <div class="countdown-item">
+              <div class="countdown-actions">
+                <button class="countdown-action" data-action="countdown-edit" data-id="${c.id}" title="编辑">✎</button>
+                <button class="countdown-action danger" data-action="countdown-del" data-id="${c.id}" title="删除">×</button>
+              </div>
+              <div class="countdown-name"><span class="countdown-icon">${esc(c.icon || '⏳')}</span>${esc(c.name)}</div>
+              <div class="countdown-days ${cls}">${Math.abs(d)}<small>天</small></div>
+              <div class="countdown-date">${esc(c.targetDate)}${d === 0 ? ' · 就是今天' : d < 0 ? ' · 已结束' : ''}</div>
+            </div>`;
+          }).join('')}
+        </div>` : `<div class="empty">还没有倒计时，点右上角添加（考试日、报名截止、打卡目标…）</div>`}
+    </div>
+  `;
+}
 function renderHabitsCard() {
   const today = dateKey();
   return `
@@ -2627,7 +2717,7 @@ function renderTasks() {
   return `
     <div class="page-head">
       <div class="page-title">任务</div>
-      <div class="page-sub">共 ${state.tasks.filter(t => !t.done).length} 项未完成 · ${state.tasks.filter(t => t.planId && !t.done).length} 项来自备考计划</div>
+      <div class="page-sub">共 ${state.tasks.filter(t => !t.done).length} 项未完成 · ${state.tasks.filter(t => t.planId && !t.done).length} 项来自计划</div>
     </div>
     <div class="card">
       <div class="input-row">
@@ -2673,7 +2763,7 @@ function renderPlans() {
     return `
       <div class="page-head">
         <div class="page-title">备考规划</div>
-        <div class="page-sub">把长期备考拆成阶段和任务，一步步推进</div>
+        <div class="page-sub">把长期目标拆成阶段和任务，一步步推进</div>
       </div>
 
       <div class="card">
@@ -3432,7 +3522,7 @@ function generatePrintHTML() {
   }
 
   const footer = opt.includeTimestamp
-    ? `<div class="print-footer">导出时间：${new Date().toLocaleString('zh-CN')} · 遴选备考工作台</div>`
+    ? `<div class="print-footer">导出时间：${new Date().toLocaleString('zh-CN')} · 学习工作台</div>`
     : '';
   return parts.join('') + footer;
 }
@@ -3618,7 +3708,7 @@ function renderSettings() {
    ============================================================ */
 const VIEWS = {
   today:     { label: '今日',     icon: '☀', render: renderToday },
-  plans:     { label: '备考规划', icon: '⊞', render: renderPlans },
+  plans:     { label: '学习计划', icon: '⊞', render: renderPlans },
   tasks:     { label: '任务',     icon: '◐', render: renderTasks },
   review:    { label: '复习',     icon: '↻', render: renderReview },
   resources: { label: '素材库',   icon: '❖', render: renderResources },
@@ -3868,7 +3958,56 @@ document.addEventListener('click',async (e) => {
       delStageTask(id);
       break;
 
-
+    /* --- 倒计时 --- */
+    case 'countdown-add': {
+      const v = await showForm({
+        title: '添加倒计时',
+        icon: '⏳',
+        desc: '考试日、报名截止、打卡目标日…',
+        fields: [
+          { key: 'name', label: '名称', required: true, placeholder: '如：2026 考研初试' },
+          { key: 'targetDate', label: '目标日期', type: 'date', required: true, default: dateKey() },
+          { key: 'icon', label: '图标（可选）', default: '⏳', hint: '支持任何 emoji' }
+        ],
+        submitText: '添加'
+      });
+      if (!v) break;
+      state.countdowns.push({
+        id: uid(), name: v.name, targetDate: v.targetDate,
+        icon: v.icon || '⏳', createdAt: Date.now()
+      });
+      save(); render(); toast('已添加倒计时');
+      break;
+    }
+    case 'countdown-edit': {
+      const c = state.countdowns.find(x => x.id === id); if (!c) break;
+      const v = await showForm({
+        title: '编辑倒计时',
+        icon: '✏️',
+        fields: [
+          { key: 'name', label: '名称', required: true, default: c.name },
+          { key: 'targetDate', label: '目标日期', type: 'date', required: true, default: c.targetDate },
+          { key: 'icon', label: '图标', default: c.icon }
+        ],
+        submitText: '保存'
+      });
+      if (!v) break;
+      c.name = v.name; c.targetDate = v.targetDate; c.icon = v.icon || '⏳';
+      save(); render(); toast('已更新');
+      break;
+    }
+    case 'countdown-del': {
+      const c = state.countdowns.find(x => x.id === id); if (!c) break;
+      const ok = await showConfirm({
+        title: '删除倒计时',
+        desc: `确定删除「${c.name}」？`,
+        confirmText: '删除', danger: true
+      });
+      if (!ok) break;
+      state.countdowns = state.countdowns.filter(x => x.id !== id);
+      save(); render();
+      break;
+    }
     /* --- 习惯 --- */
     case 'add-habit': addHabit(); break;
     case 'toggle-habit':
@@ -4087,6 +4226,7 @@ document.addEventListener('click',async (e) => {
       state.tasks = []; state.inbox = []; state.resources = [];
       state.notes = []; state.cards = []; state.sessions = [];
       state.goals = []; state.habits = []; state.plans = []; state.expandedPlans = {};
+      state.countdowns = [];
       state.activeNoteId = null; state.tagFilter = null;
         save(); render(); toast('已清空');
       break;
@@ -4303,6 +4443,7 @@ async function doImport(data) {
   state.goals     = data.goals || [];
   state.habits    = data.habits || [];
   state.plans     = data.plans || [];
+  state.countdowns = data.countdowns || [];
   if (data.pomodoroConfig) {
     state.pomodoro.focusDuration = data.pomodoroConfig.focusDuration || 25 * 60;
     state.pomodoro.breakDuration = data.pomodoroConfig.breakDuration || 5 * 60;
@@ -4333,6 +4474,8 @@ async function exportJSON() {
     tasks: state.tasks, inbox: state.inbox, resources: state.resources,
     notes: state.notes, cards: state.cards, sessions: state.sessions,
     goals: state.goals, habits: state.habits, plans: state.plans,
+    countdowns: state.countdowns,
+    countdowns: state.countdowns,
     pomodoroConfig: { focusDuration: state.pomodoro.focusDuration, breakDuration: state.pomodoro.breakDuration },
     attachments
   }, null, 2);
@@ -4383,7 +4526,7 @@ function exportMarkdown() {
   const iconSvg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 192 192"><rect width="192" height="192" rx="44" fill="#4338ca"/><path d="M54 62h84v16H54zm0 30h84v16H54zm0 30h58v16H54z" fill="#fff"/></svg>`;
   const iconUrl = 'data:image/svg+xml;base64,' + btoa(unescape(encodeURIComponent(iconSvg)));
   const manifest = {
-    name: '遴选备考工作台', short_name: '遴选备考',
+    name: '学习工作台', short_name: '学习台',
     start_url: '.', display: 'standalone',
     background_color: '#f5f6fa', theme_color: '#4338ca',
     icons: [
