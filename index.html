@@ -700,7 +700,32 @@ window.addEventListener('appinstalled', () => {
 /* =========================================================
    8. 启动
    ======================================================= */
-render();
+async function loadItemsFromRemote(){
+  try {
+    // 加时间戳绕过 PWA / 浏览器缓存
+    const res = await fetch('./items.json?t=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) return null;
+    const data = await res.json();
+    if (Array.isArray(data)) return data;
+    if (data && Array.isArray(data.items)) return data.items;
+  } catch (e) {}
+  return null;
+}
+
+async function boot(){
+  // 先用本地数据秒开，避免白屏
+  render();
+
+  // 再去网上拉最新的，成功就覆盖
+  const remote = await loadItemsFromRemote();
+  if (remote && remote.length) {
+    items = remote;
+    saveItems();
+    render();
+  }
+}
+
+boot();
 </script>
 </body>
 </html>
