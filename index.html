@@ -303,6 +303,7 @@
     <span class="spacer"></span>
     <button class="btn" id="exportBtn">备份</button>
     <button class="btn" id="importBtn">恢复</button>
+    <button class="btn" id="resetBtn" title="恢复到代码里写死的默认列表">重置</button>
     <button class="btn" id="installBtn" hidden>安装到桌面</button>
     <input type="file" id="fileInput" accept=".json,application/json" hidden />
   </div>
@@ -590,6 +591,7 @@ document.addEventListener('keydown', e => {
 });
 
 $('addBtn').addEventListener('click', () => openForm(null));
+  $('resetBtn').addEventListener('click', resetToDefault);
 
 /* =========================================================
    5. 备份 / 恢复
@@ -606,7 +608,16 @@ $('exportBtn').addEventListener('click', () => {
   toast('已导出备份文件');
 });
 
-$('importBtn').addEventListener('click', () => $('fileInput').click());
+/* 恢复默认列表（用代码里的 DEFAULT_ITEMS 覆盖浏览器缓存） */
+function resetToDefault(){
+  if (!confirm('恢复默认列表？\n\n当前所有卡片的添加、编辑、排序都会丢失，恢复到代码里写死的默认三个。\n\n确定继续吗？')) return;
+  try { localStorage.removeItem(STORAGE_KEY); } catch(e) {}
+  items = loadItems();
+  saveItems();
+  render();
+  toast('已恢复默认列表');
+}
+  $('importBtn').addEventListener('click', () => $('fileInput').click());
 
 $('fileInput').addEventListener('change', e => {
   const file = e.target.files && e.target.files[0];
