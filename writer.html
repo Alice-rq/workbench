@@ -5468,12 +5468,59 @@ function playPomoSound(type){
   }
 }
 let pomoTimer = null;
-let pomoState = { mode:'work', remaining:0, running:false };
+let pomoState = { mode:'work', remaining:0, running:false, endAt:0 };
+
+const POMO_KEY = 'writer-pomodoro-v1';
+function savePomoState(){
+  try {
+    localStorage.setItem(POMO_KEY, JSON.stringify({
+      mode: pomoState.mode,
+      remaining: pomoState.remaining,
+      endAt: pomoState.endAt,
+      running: pomoState.running
+    }));
+  } catch(e){}
+}
+function clearPomoState(){
+  try { localStorage.removeItem(POMO_KEY); } catch(e){}
+}
+function restorePomoState(){
+  try {
+    const raw = localStorage.getItem(POMO_KEY);
+    if (!raw) return false;
+    const s = JSON.parse(raw);
+    if (!s || !s.mode) return false;
+    pomoState.mode = s.mode;
+    if (s.running && s.endAt) {
+      const left = (s.endAt - Date.now()) / 1000;
+      if (left > 0) {
+        pomoState.running = true;
+        pomoState.endAt = s.endAt;
+        pomoState.remaining = Math.round(left);
+        if (pomoTimer) clearInterval(pomoTimer);
+        pomoTimer = setInterval(pomoTick, 1000);
+      } else {
+        pomoState.running = false;
+        pomoState.remaining = 0;
+        clearPomoState();
+      }
+    } else if (s.remaining > 0) {
+      pomoState.remaining = s.remaining;
+      pomoState.running = false;
+    }
+    pomoRender();
+    return true;
+  } catch(e){ return false; }
+}
 
 function pomoInit(){
+  // 优先恢复上次状态
+  if (restorePomoState()) return;
   const p = prefs.pomodoro;
-  pomoState.remaining = p.workMin * 60;
   pomoState.mode = 'work';
+  pomoState.remaining = p.workMin * 60;
+  pomoState.running = false;
+  pomoState.endAt = 0;
   pomoRender();
 }
 
@@ -5494,42 +5541,51 @@ function pomoRender(){
 }
 
 function pomoTick(){
-  if (pomoState.remaining > 0) {
-    pomoState.remaining--;
+  const p = prefs.pomodoro;
+  if (pomoState.running && pomoState.endAt) {
+    const left = Math.max(0, Math.round((pomoState.endAt - Date.now()) / 1000));
+    pomoState.remaining = left;
     pomoRender();
-  } else {
-    pomoStop();
-    if (pomoState.mode === 'work') {
-      toast('🍅 专注结束，休息一下');
-      if (prefs.pomodoro.soundEnabled !== false) {
-        playPomoSound('workEnd');
+    if (left <= 0) {
+      pomoStop();
+      if (pomoState.mode === 'work') {
+        toast('🍅 专注结束，休息一下');
+        if (prefs.pomodoro.soundEnabled !== false) playPomoSound('workEnd');
+        pomoState.mode = 'rest';
+        pomoState.remaining = p.restMin * 60;
+      } else {
+        toast('☕ 休息结束，继续专注');
+        if (prefs.pomodoro.soundEnabled !== false) playPomoSound('restEnd');
+        pomoState.mode = 'work';
+        pomoState.remaining = p.workMin * 60;
       }
-      pomoState.mode = 'rest';
-      pomoState.remaining = prefs.pomodoro.restMin * 60;
-    } else {
-      toast('☕ 休息结束，继续专注');
-      if (prefs.pomodoro.soundEnabled !== false) {
-        playPomoSound('restEnd');
-      }
-      pomoState.mode = 'work';
-      pomoState.remaining = prefs.pomodoro.workMin * 60;
+      pomoState.endAt = 0;
+      pomoRender();
+      clearPomoState();
     }
-    pomoRender();
   }
 }
 function pomoStart(){
   if (pomoState.running) return;
   pomoState.running = true;
+  pomoState.endAt = Date.now() + pomoState.remaining * 1000;
+  if (pomoTimer) clearInterval(pomoTimer);
   pomoTimer = setInterval(pomoTick, 1000);
   pomoRender();
+  savePomoState();
   if (prefs.pomodoro.soundEnabled !== false) {
     playPomoSound('workStart');
   }
 }
+
 function pomoStop(){
   pomoState.running = false;
-  clearInterval(pomoTimer);
-  pomoTimer = null;
+  if (pomoTimer) { clearInterval(pomoTimer); pomoTimer = null; }
+  if (pomoState.endAt) {
+    pomoState.remaining = Math.max(0, Math.round((pomoState.endAt - Date.now()) / 1000));
+    pomoState.endAt = 0;
+  }
+  savePomoState();
 }
 
 function pomoReset(){
@@ -5537,7 +5593,9 @@ function pomoReset(){
   const p = prefs.pomodoro;
   pomoState.mode = 'work';
   pomoState.remaining = p.workMin * 60;
+  pomoState.endAt = 0;
   pomoRender();
+  clearPomoState();
 }
 
 document.querySelector('#btnPomodoro')?.addEventListener('click', e => {
@@ -5589,7 +5647,6 @@ document.querySelector('#pomoSound')?.addEventListener('change', e => {
   saveNow();
 });
 
-pomoInit();
 /* ============================================================
    31. 主题色
 ============================================================ */
@@ -5628,13 +5685,14 @@ document.querySelectorAll('.theme-dot').forEach(dot => {
 // 启动时应用
 applyAccent(prefs.accentColor);
 /* ============================================================
-   26. 启动
+   启动
 ============================================================ */
 loadAll();
 loadChapterIntoEditor();
 render();
 setStatus('已保存');
 applyAppearance();
+pomoInit();   // ← 加这一行，放在 loadAll 之后
 window.addEventListener('beforeunload',saveNow);
 window.addEventListener('beforeunload', e => {
   if (prefs.lockdown && prefs.lockdown.active) {
