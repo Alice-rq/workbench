@@ -841,6 +841,65 @@
 }
 .print-preview .print-task-list li.done { color: #999; text-decoration: line-through; }
 .print-preview .print-task-list li.done .chk { background: #333; color: #fff; }
+.print-preview .print-question {
+  border: 1px solid #ddd; border-radius: 6px;
+  padding: 12px 14px; margin-bottom: 14px;
+  page-break-inside: avoid;
+}
+.print-preview .print-q-header {
+  display: flex; flex-wrap: wrap; gap: 8px; align-items: baseline;
+  font-size: 10pt; color: #666; margin-bottom: 8px;
+  padding-bottom: 6px; border-bottom: 1px dashed #ddd;
+}
+.print-preview .print-q-num { font-weight: 800; color: #111; font-size: 11pt; }
+.print-preview .print-q-tag {
+  padding: 1px 6px; border-radius: 4px;
+  background: #eef0ff; color: #4338ca; font-weight: 600;
+}
+.print-preview .print-q-src { color: #888; }
+.print-preview .print-q-score { margin-left: auto; font-weight: 700; color: #111; }
+.print-preview .print-q-body {
+  font-size: 11pt; line-height: 1.65; margin-bottom: 10px;
+}
+.print-preview .print-q-att {
+  font-size: 9.5pt; color: #888; margin-bottom: 10px;
+}
+.print-preview .print-q-block {
+  margin-bottom: 10px;
+}
+.print-preview .print-q-block-title {
+  font-size: 10pt; font-weight: 700; color: #333;
+  margin-bottom: 4px;
+}
+.print-preview .print-q-block-body {
+  font-size: 10.5pt; line-height: 1.65;
+  padding: 8px 10px; background: #f7f7f9; border-radius: 4px;
+}
+.print-preview .print-q-hidden {
+  font-size: 10pt; color: #888; font-style: italic;
+  margin-bottom: 6px;
+}
+.print-preview .print-q-blank {
+  height: 120px; border: 1px dashed #ccc; border-radius: 4px;
+  margin-bottom: 10px;
+}
+.print-preview .print-q-issues { margin-top: 6px; }
+.print-preview .print-q-issue-list {
+  list-style: none; padding: 0; margin: 4px 0;
+}
+.print-preview .print-q-issue-list li {
+  font-size: 10.5pt; padding: 3px 0;
+  display: flex; gap: 8px; align-items: baseline;
+}
+.print-preview .print-q-issue-list li.resolved { color: #999; text-decoration: line-through; }
+.print-preview .print-q-issue-list .lvl {
+  display: inline-block; font-size: 8.5pt; padding: 1px 6px;
+  border-radius: 3px; font-weight: 700; flex-shrink: 0;
+}
+.print-preview .print-q-issue-list .lvl-high { background: #fee2e2; color: #b91c1c; }
+.print-preview .print-q-issue-list .lvl-mid  { background: #fef3c7; color: #b45309; }
+.print-preview .print-q-issue-list .lvl-low  { background: #dbeafe; color: #1d4ed8; }
+.print-preview .print-q-issue-list .ok { color: #059669; font-size: 9.5pt; margin-left: auto; }
 .print-preview .print-footer {
   margin-top: 24px; padding-top: 10px; border-top: 1px solid #ddd;
   font-size: 9pt; color: #888; text-align: center;
@@ -1018,6 +1077,151 @@
 }
 .countdown-action:hover { background: var(--hover); color: var(--text); }
 .countdown-action.danger:hover { background: rgba(220,38,38,.1); color: var(--danger); }
+/* ===== 题目集 ===== */
+.q-card {
+  position: relative;
+  display: flex;
+  gap: 14px;
+  padding: 16px 18px;
+  margin-bottom: 12px;
+  background: var(--card);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  box-shadow: var(--shadow-sm);
+  cursor: pointer;
+  transition: transform .15s, border-color .15s, box-shadow .15s;
+}
+.q-card:hover {
+  transform: translateY(-1px);
+  border-color: var(--accent);
+  box-shadow: var(--shadow-md);
+}
+.q-card::before {
+  content: '';
+  position: absolute;
+  left: 0; top: 14px; bottom: 14px;
+  width: 3px; border-radius: 0 3px 3px 0;
+  background: var(--accent);
+  opacity: .6;
+}
+.q-card.p-low::before { background: var(--danger); opacity: 1; }
+.q-card.p-mid::before { background: var(--warn);   opacity: 1; }
+.q-card.p-ok::before  { background: var(--accent); opacity: 1; }
+.q-card.p-top::before { background: var(--success);opacity: 1; }
+
+.q-card-main { flex: 1; min-width: 0; }
+.q-card-title {
+  font-size: 15px; font-weight: 700;
+  color: var(--text); line-height: 1.4;
+  margin-bottom: 6px;
+  overflow: hidden; text-overflow: ellipsis;
+  display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical;
+}
+.q-card-meta {
+  display: flex; flex-wrap: wrap; gap: 8px;
+  align-items: center; font-size: 12.5px; color: var(--muted);
+}
+.q-card-meta .tag-chip {
+  font-size: 11.5px; padding: 2px 9px;
+}
+.q-card-right {
+  flex-shrink: 0;
+  display: flex; flex-direction: column;
+  align-items: flex-end; justify-content: center;
+  gap: 4px; min-width: 76px;
+}
+.q-score {
+  font-size: 26px; font-weight: 800;
+  font-variant-numeric: tabular-nums;
+  line-height: 1; letter-spacing: -.02em;
+}
+.q-score small { font-size: 13px; font-weight: 700; margin-left: 1px; }
+.q-score-sub {
+  font-size: 11.5px; color: var(--muted);
+  font-variant-numeric: tabular-nums;
+}
+.q-score.none { font-size: 13px; color: var(--muted); font-weight: 500; }
+.q-unresolved {
+  font-size: 11.5px; color: var(--warn); font-weight: 600;
+}
+/* ===== 题目集：移动端 / 平板适配 ===== */
+@media (max-width: 600px) {
+  /* 卡片：右侧改横排，评分和按钮并排一行 */
+  .q-card {
+    flex-direction: column;
+    gap: 10px;
+    padding: 14px;
+  }
+  .q-card-right {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    width: 100%;
+    min-width: 0;
+    border-top: 1px dashed var(--border-soft);
+    padding-top: 10px;
+    gap: 8px;
+  }
+  .q-score { font-size: 20px; }
+  .q-card-title { font-size: 14.5px; }
+  .q-card-meta { font-size: 12px; gap: 6px; }
+
+  /* 问题行：紧凑，避免 4 列挤爆 */
+  .q-issue-row {
+    grid-template-columns: minmax(0,1fr) 66px 58px 26px !important;
+    gap: 4px !important;
+  }
+  .q-issue-row input,
+  .q-issue-row select {
+    font-size: 12px !important;
+    padding: 6px 8px !important;
+  }
+
+  /* 题目编辑器：手机全屏 */
+  #question-modal.form-modal {
+    padding: 0;
+    align-items: stretch;
+  }
+  #question-modal .form-panel {
+    max-width: 100% !important;
+    max-height: 100vh;
+    height: 100vh;
+    border-radius: 0;
+  }
+  #question-modal .form-panel-header { padding: 16px 16px 0; }
+  #question-modal .form-panel-body { padding: 12px 16px 8px; }
+  #question-modal .form-panel-actions {
+    padding: 12px 16px max(12px, env(safe-area-inset-bottom));
+  }
+}
+
+/* 题目集：问题行（桌面端） */
+.q-issue-row {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 90px 80px 32px;
+  gap: 6px;
+  align-items: center;
+}
+
+/* 平板（769-1024px）：压紧一点 */
+@media (min-width: 769px) and (max-width: 1024px) {
+  .q-card { padding: 14px 16px; }
+  .q-card-right { min-width: 68px; }
+  .q-score { font-size: 22px; }
+}
+
+/* 横屏小设备：表单行的 3 列会太挤，改 2 列 */
+@media (max-width: 600px) and (orientation: landscape) {
+  .q-field-grid { grid-template-columns: 1fr 1fr; }
+}
+
+/* 题目编辑器：三列字段 */
+.q-field-grid {
+  display: grid;
+  grid-template-columns: 2fr 1fr 1fr;
+  gap: 10px;
+  margin-bottom: 12px;
+}
 </style>
 </head>
 <body>
@@ -1172,6 +1376,20 @@
     </div>
   </div>
 </div>
+<!-- 题目编辑弹窗 -->
+<div class="form-modal" id="question-modal">
+  <div class="form-overlay" data-action="close-question"></div>
+  <div class="form-panel" style="max-width:820px">
+    <div class="form-panel-header">
+      <div class="form-panel-title" id="question-modal-title">
+        <span class="icon">❏</span><span>题目</span>
+      </div>
+    </div>
+    <div class="form-panel-body" id="question-modal-body" style="padding:14px 22px 8px"></div>
+    <div class="form-panel-actions" id="question-modal-actions"></div>
+  </div>
+</div>
+<input type="file" id="q-file-input" accept="image/*,.pdf,application/pdf" multiple style="display:none">
 <!-- 确认弹窗 -->
 <div class="form-modal" id="confirm-modal">
   <div class="form-overlay" id="confirm-overlay"></div>
@@ -1239,6 +1457,46 @@ const IDB = {
   }
 };
 
+/* ---------------- 附件上传工具（图片 / PDF 存 IndexedDB）---------------- */
+async function qUploadFile(file) {
+  return new Promise((resolve, reject) => {
+    const MAX = 20 * 1024 * 1024; // 20MB 上限
+    if (file.size > MAX) { reject(new Error('文件超过 20MB')); return; }
+    const reader = new FileReader();
+    reader.onload = async () => {
+      const attId = 'att-' + uid();
+      const kind = file.type.startsWith('image/') ? 'image'
+                 : file.type === 'application/pdf' ? 'pdf' : 'other';
+      try {
+        await IDB.put('attachments', {
+          id: attId, name: file.name, type: file.type,
+          data: reader.result, size: file.size,
+          kind, createdAt: Date.now()
+        });
+        resolve({ id: attId, name: file.name, type: file.type, kind, size: file.size });
+      } catch (e) { reject(e); }
+    };
+    reader.onerror = () => reject(reader.error);
+    reader.readAsDataURL(file);
+  });
+}
+
+async function qGetAttachment(attId) {
+  return await IDB.get('attachments', attId);
+}
+
+async function qLoadAttachmentPreviews() {
+  const imgs = document.querySelectorAll('#question-modal-body img[data-att-id]');
+  for (const img of imgs) {
+    if (img.dataset.loaded) continue;
+    const att = await qGetAttachment(img.dataset.attId);
+    if (att && att.data) {
+      img.src = att.data;
+      img.style.minHeight = '';
+      img.dataset.loaded = '1';
+    }
+  }
+}
 /* ---------------- 计划模板 ---------------- */
 const PLAN_TEMPLATES = {
   'lx-3month': {
@@ -1388,12 +1646,17 @@ let state = {
   pomodoro: { running: false, mode: 'focus', startAt: null, elapsed: 0, focusDuration: 25 * 60, breakDuration: 5 * 60 },
   report: { range: 'week', text: '' },
   printOptions: {
-    cards: true, resources: true, notes: false, plans: false,
+    cards: true, resources: true, notes: false, plans: false, questions: false,
     tag: '', range: 'all',
     cardsOnlyDue: false, cardsWithSpace: true,
+    questionsHideAnswers: true,
     includeTimestamp: true
   },
   countdowns: [],   // [{id, name, targetDate, icon, createdAt}]
+  questions: [],       // 题目集
+  qSearch: '',
+  qFilterCat: '',
+  qFilterStatus: 'all',
   sidebarOpen: false
 };
 let timerInterval = null;
@@ -1629,6 +1892,7 @@ function save() {
       notes: state.notes, cards: state.cards, sessions: state.sessions,
       goals: state.goals, habits: state.habits, plans: state.plans,
       countdowns: state.countdowns,
+      questions: state.questions,
       pomodoroConfig: {          // ← 改对了
         focusDuration: state.pomodoro.focusDuration,
         breakDuration: state.pomodoro.breakDuration,
@@ -1655,6 +1919,20 @@ function load() {
     state.habits    = d.habits || [];
     state.plans     = d.plans || [];
 state.countdowns = d.countdowns || [];
+    state.questions = (d.questions || []).map(q => {
+      const safe = Object.assign({
+        id: uid(), title: '', category: '', type: '', source: '',
+        questionText: '', myAnswer: '',
+        attachments: [], issues: [],
+        score: { got: 0, total: 100 },
+        createdAt: Date.now(), updatedAt: Date.now()
+      }, q || {});
+      if (!safe.aiAnswers || typeof safe.aiAnswers !== 'object') safe.aiAnswers = {};
+      if (!Array.isArray(safe.issues)) safe.issues = [];
+      if (!Array.isArray(safe.attachments)) safe.attachments = [];
+      if (!safe.score || typeof safe.score !== 'object') safe.score = { got: 0, total: 100 };
+      return safe;
+    });
    if (d.pomodoroConfig) {
   const cfg = d.pomodoroConfig;
   state.pomodoro.focusDuration = cfg.focusDuration || 25 * 60;
@@ -3112,6 +3390,556 @@ function renderGoals() {
   `;
 }
 
+/* ============================================================
+   题目集
+   ============================================================ */
+
+function renderQuestions() {
+  const all = state.questions.slice().sort((a, b) =>
+    (b.updatedAt || b.createdAt || 0) - (a.updatedAt || a.createdAt || 0)
+  );
+  const q = (state.qSearch || '').trim().toLowerCase();
+  const fcat = state.qFilterCat || '';
+  const fstatus = state.qFilterStatus || 'all';
+
+  let list = all;
+  if (q) {
+    list = list.filter(x =>
+      (x.title || '').toLowerCase().includes(q) ||
+      (x.questionText || '').toLowerCase().includes(q) ||
+      (x.myAnswer || '').toLowerCase().includes(q) ||
+      (x.source || '').toLowerCase().includes(q)
+    );
+  }
+  if (fcat) list = list.filter(x => x.category === fcat);
+  if (fstatus === 'unresolved') list = list.filter(x => (x.issues || []).some(i => !i.resolved));
+  if (fstatus === 'low') list = list.filter(x => x.score && x.score.total && (x.score.got / x.score.total) < 0.7);
+  if (fstatus === 'mastered') list = list.filter(x => x.score && x.score.total && (x.score.got / x.score.total) >= 0.85);
+
+  const cats = [...new Set(all.map(x => x.category).filter(Boolean))].sort();
+
+  const scored = all.filter(x => x.score && x.score.total > 0);
+  const avg = scored.length
+    ? Math.round(scored.reduce((s, x) => s + (x.score.got / x.score.total), 0) / scored.length * 100)
+    : 0;
+  const unresolvedCount = all.filter(x => (x.issues || []).some(i => !i.resolved)).length;
+
+  return `
+    <div class="page-head">
+      <div class="page-title">题目集</div>
+      <div class="page-sub">上传题目、记录得分、对比答案、整理错因</div>
+    </div>
+
+    <div class="stat-grid" style="grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:10px;margin-bottom:16px">
+      <div class="stat-card"><div class="stat-label">题目总数</div><div class="stat-value">${all.length}</div></div>
+      <div class="stat-card"><div class="stat-label">平均得分</div><div class="stat-value">${avg}<span class="stat-unit">%</span></div></div>
+      <div class="stat-card"><div class="stat-label">待解决问题</div><div class="stat-value" style="${unresolvedCount ? 'color:var(--warn)' : ''}">${unresolvedCount}</div></div>
+      <div class="stat-card"><div class="stat-label">分类</div><div class="stat-value">${cats.length}</div></div>
+    </div>
+
+    <div class="card">
+      <div class="input-row" style="margin-bottom:12px">
+        <input type="text" id="q-search-input" placeholder="搜索题目、答案、来源…" value="${esc(state.qSearch || '')}" style="flex:1;min-width:180px">
+        <button class="btn btn-primary" data-action="q-add">+ 新增题目</button>
+      </div>
+      ${cats.length ? `
+      <div class="tag-filter-bar" style="margin-bottom:8px">
+        <span class="label">分类</span>
+        <button class="tag-filter ${!fcat ? 'active' : ''}" data-action="q-filter-cat" data-cat="">全部</button>
+        ${cats.map(c => `<button class="tag-filter ${fcat === c ? 'active' : ''}" data-action="q-filter-cat" data-cat="${esc(c)}">${esc(c)}</button>`).join('')}
+      </div>` : ''}
+      <div class="filter-tabs" style="margin-bottom:0">
+        ${[['all','全部'],['unresolved','待解决'],['low','得分偏低'],['mastered','已掌握']].map(([k, l]) =>
+          `<button class="filter-tab ${fstatus === k ? 'active' : ''}" data-action="q-filter-status" data-status="${k}">${l}</button>`
+        ).join('')}
+      </div>
+    </div>
+
+     <div id="q-list-area">
+      ${renderQuestionList()}
+    </div>
+  `;
+}
+
+function renderQuestionList() {
+  const all = state.questions;
+  const q = (state.qSearch || '').trim().toLowerCase();
+  const fcat = state.qFilterCat || '';
+  const fstatus = state.qFilterStatus || 'all';
+
+  let list = all;
+  if (q) {
+    list = list.filter(x =>
+      (x.title || '').toLowerCase().includes(q) ||
+      (x.questionText || '').toLowerCase().includes(q) ||
+      (x.myAnswer || '').toLowerCase().includes(q) ||
+      (x.source || '').toLowerCase().includes(q)
+    );
+  }
+  if (fcat) list = list.filter(x => x.category === fcat);
+  if (fstatus === 'unresolved') list = list.filter(x => (x.issues || []).some(i => !i.resolved));
+  if (fstatus === 'low') list = list.filter(x => x.score && x.score.total && (x.score.got / x.score.total) < 0.7);
+  if (fstatus === 'mastered') list = list.filter(x => x.score && x.score.total && (x.score.got / x.score.total) >= 0.85);
+
+  if (!list.length) {
+    return `<div class="card"><div class="empty">${all.length ? '没有符合筛选条件的题目' : '还没有题目，点右上角「+ 新增题目」开始'}</div></div>`;
+  }
+  return list.map(item => renderQuestionCard(item)).join('');
+}
+
+function renderQuestionCard(x) {
+  const pct = x.score && x.score.total ? Math.round(x.score.got / x.score.total * 100) : null;
+  let levelCls = '';
+  if (pct != null) {
+    if (pct >= 85) levelCls = 'p-top';
+    else if (pct >= 70) levelCls = 'p-ok';
+    else if (pct >= 50) levelCls = 'p-mid';
+    else levelCls = 'p-low';
+  }
+  const issues = x.issues || [];
+  const unresolved = issues.filter(i => !i.resolved).length;
+  const attCount = (x.attachments || []).length;
+  const aiCount = Object.values(x.aiAnswers || {}).filter(v => (v || '').trim()).length;
+
+  return `
+    <div class="q-card ${levelCls}" data-action="q-open" data-id="${x.id}">
+      <div class="q-card-main">
+        <div class="q-card-title">${esc(x.title || '未命名题目')}</div>
+        <div class="q-card-meta">
+          ${x.category ? `<span class="tag-chip" style="cursor:default">${esc(x.category)}</span>` : ''}
+          ${x.type ? `<span class="tag-chip" style="cursor:default">${esc(x.type)}</span>` : ''}
+          ${x.source ? `<span>📍 ${esc(x.source)}</span>` : ''}
+          ${attCount ? `<span>📎 ${attCount}</span>` : ''}
+          ${aiCount ? `<span>🤖 ${aiCount} 份 AI 答案</span>` : ''}
+          <span>${fmtTime(x.updatedAt || x.createdAt)}</span>
+        </div>
+      </div>
+      <div class="q-card-right">
+        ${pct != null
+          ? `<div class="q-score" style="color:${
+              pct >= 85 ? 'var(--success)' :
+              pct >= 70 ? 'var(--accent)' :
+              pct >= 50 ? 'var(--warn)' : 'var(--danger)'
+            }">${pct}<small>%</small></div>
+             <div class="q-score-sub">${x.score.got} / ${x.score.total}</div>`
+          : `<div class="q-score none">未评分</div>`}
+        ${unresolved ? `<div class="q-unresolved">⚠️ ${unresolved}</div>` : ''}
+        <button class="btn btn-sm" data-action="q-to-card" data-id="${x.id}"
+          style="margin-top:6px" title="把这道题生成复习卡片">📇 转卡片</button>
+      </div>
+    </div>
+  `;
+}
+/* ---------------- 题目 → 复习卡片 ---------------- */
+async function questionToCards(qid) {
+  const q = state.questions.find(x => x.id === qid);
+  if (!q) return;
+
+  const aiEntries = Object.entries(q.aiAnswers || {}).filter(([k, v]) => (v || '').trim());
+  if (!q.questionText && !aiEntries.length) {
+    toast('题干和参考答案都为空，无法生成卡片');
+    return;
+  }
+
+  // 如果有多份 AI 答案，让用户选一个（默认 deepseek）
+  let aiKey = 'deepseek';
+  if (aiEntries.length > 1) {
+    const keys = aiEntries.map(([k]) => k);
+    const pick = prompt(
+      '用哪个 AI 答案作为卡片背面？\n可选：' + keys.join(' / ') + '\n留空则默认 deepseek',
+      keys.includes('deepseek') ? 'deepseek' : keys[0]
+    );
+    if (pick === null) return; // 取消
+    const clean = (pick || '').trim();
+    if (clean && keys.includes(clean)) aiKey = clean;
+    else if (clean) { toast('无效选项，已用 ' + aiKey); }
+  }
+
+  const found = aiEntries.find(([k]) => k === aiKey);
+  const backText = found ? found[1] : (aiEntries[0] ? aiEntries[0][1] : '');
+
+  if (!q.questionText || !backText) {
+    toast('题干或参考答案缺失，无法生成');
+    return;
+  }
+
+  const ok = await showConfirm({
+    title: '生成复习卡片',
+    desc: `将以「题干 → ${aiKey} 答案」生成 1 张卡片，并加入「复习」页。\n${q.attachments && q.attachments.length ? `（有 ${q.attachments.length} 个附件，附件不会进卡片，只在卡片标题里标注）\n` : ''}继续吗？`,
+    confirmText: '生成'
+  });
+  if (!ok) return;
+
+  const tags = [];
+  if (q.category) tags.push(q.category);
+  if (q.type) tags.push(q.type);
+
+  let front = q.questionText.trim();
+  if (q.attachments && q.attachments.length) {
+    front += `\n\n[附件 ${q.attachments.length} 个：${q.attachments.map(a => a.name).join('、')}]`;
+  }
+
+  const now = Date.now();
+  state.cards.push({
+    id: uid(),
+    front,
+    back: backText.trim(),
+    tags,
+    ease: 2.5, interval: 0, reps: 0,
+    due: now, createdAt: now,
+    fromQuestionId: q.id   // 记住来源，方便追溯
+  });
+
+  // 记录在题目上（可选，用于显示已生成多少张）
+  q.reviewCount = (q.reviewCount || 0) + 1;
+  q.lastReviewAt = now;
+
+  save(); render();
+  toast('已生成 1 张复习卡片');
+}
+
+/* ---------------- 题目编辑器 ---------------- */
+let editingQId = null;
+let editingQAttachments = [];
+let editingQIssues = [];
+
+function openQuestionEditor(id) {
+  editingQId = id || null;
+  const cur = id ? state.questions.find(x => x.id === id) : null;
+  const q = cur ? JSON.parse(JSON.stringify(cur)) : {
+    id: uid(), title: '', category: '', type: '', source: '',
+    questionText: '', attachments: [],
+    myAnswer: '', aiAnswers: { deepseek: '', doubao: '' },
+    score: { got: 0, total: 100 }, issues: [],
+    createdAt: Date.now(), updatedAt: Date.now()
+  };
+  if (!q.aiAnswers) q.aiAnswers = {};
+  if (!q.issues) q.issues = [];
+  if (!q.attachments) q.attachments = [];
+  if (!q.score) q.score = { got: 0, total: 100 };
+
+  editingQAttachments = JSON.parse(JSON.stringify(q.attachments));
+  editingQIssues = JSON.parse(JSON.stringify(q.issues));
+
+  const cats = [...new Set(state.questions.map(x => x.category).filter(Boolean))].sort();
+
+  document.getElementById('question-modal-title').textContent = cur ? '编辑题目' : '新增题目';
+  document.getElementById('question-modal-body').innerHTML = `
+    <div class="q-field-grid">
+      <div class="form-field">
+        <label class="form-field-label">标题 <span class="req">*</span></label>
+        <input type="text" id="q-title" maxlength="80" placeholder="如：2024 国考地市级 申论第一题" value="${esc(q.title)}">
+      </div>
+      <div class="form-field">
+        <label class="form-field-label">分类</label>
+        <input type="text" id="q-category" list="q-cat-list" maxlength="20" placeholder="公文 / 案例 / 作文…" value="${esc(q.category)}">
+        <datalist id="q-cat-list">${cats.map(c => `<option value="${esc(c)}">`).join('')}</datalist>
+      </div>
+      <div class="form-field">
+        <label class="form-field-label">题型</label>
+        <input type="text" id="q-type" maxlength="20" placeholder="应用文 / 议论文…" value="${esc(q.type)}">
+      </div>
+    </div>
+
+    <div class="form-field" style="margin-bottom:14px">
+      <label class="form-field-label">来源（选填）</label>
+      <input type="text" id="q-source" maxlength="60" placeholder="如：2024 国考 / 某机构模拟卷" value="${esc(q.source)}">
+    </div>
+
+    <div class="form-field" style="margin-bottom:14px">
+      <label class="form-field-label">题干（选填，可以只上传附件）</label>
+      <textarea id="q-question" rows="5" style="resize:vertical;font-family:inherit">${esc(q.questionText)}</textarea>
+    </div>
+
+    <div class="form-field" style="margin-bottom:14px">
+      <label class="form-field-label">附件（图片 / PDF，可多选）</label>
+      <div id="q-attachments" style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:8px"></div>
+      <button type="button" class="btn" id="q-upload-btn" style="align-self:flex-start">+ 上传文件</button>
+      <div class="form-field-hint">支持 jpg/png/gif/webp/pdf，单个文件不超过 20MB，附件存在浏览器本地</div>
+    </div>
+
+    <div class="form-field" style="margin-bottom:14px">
+      <label class="form-field-label">✍️ 我的答案</label>
+      <textarea id="q-my-answer" rows="5" style="resize:vertical;font-family:inherit">${esc(q.myAnswer)}</textarea>
+    </div>
+
+    <div class="form-field" style="margin-bottom:14px">
+      <label class="form-field-label">🤖 AI 参考答案</label>
+      <div id="q-ai-list" style="display:flex;flex-direction:column;gap:10px"></div>
+      <button type="button" class="btn" id="q-add-ai" style="align-self:flex-start;margin-top:8px">+ 添加其他 AI 答案</button>
+    </div>
+
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:14px">
+      <div class="form-field">
+        <label class="form-field-label">实际得分</label>
+        <input type="number" id="q-got" min="0" step="0.5" value="${q.score.got}">
+      </div>
+      <div class="form-field">
+        <label class="form-field-label">总分</label>
+        <input type="number" id="q-total" min="1" step="1" value="${q.score.total}">
+      </div>
+    </div>
+
+    <div class="form-field" style="margin-bottom:0">
+      <label class="form-field-label">⚠️ 我的回答存在的问题</label>
+      <div id="q-issues" style="display:flex;flex-direction:column;gap:8px"></div>
+      <button type="button" class="btn" id="q-add-issue" style="align-self:flex-start;margin-top:8px">+ 添加问题</button>
+    </div>
+  `;
+
+  document.getElementById('question-modal-actions').innerHTML = `
+    ${cur ? '<button class="btn btn-danger" id="q-del-btn">删除题目</button>' : ''}
+    ${cur ? '<button class="btn" id="q-make-card-btn">📇 生成复习卡片</button>' : ''}
+    <button class="btn" data-action="close-question">取消</button>
+    <button class="btn btn-primary" id="q-save-btn">保存</button>
+  `;
+
+  // 附件列表
+  renderQAttachments();
+  // AI 答案列表
+  renderQAIList(q.aiAnswers);
+  // 问题列表
+  renderQIssues();
+
+  document.getElementById('question-modal').classList.add('show');
+
+  // 事件绑定
+  document.getElementById('q-upload-btn').addEventListener('click', () => {
+    document.getElementById('q-file-input').click();
+  });
+  document.getElementById('q-add-ai').addEventListener('click', () => {
+    const name = prompt('AI 名称（如 kimi / 通义千问）：');
+    if (!name) return;
+    addQAIAnswer(name.trim());
+  });
+  document.getElementById('q-add-issue').addEventListener('click', () => {
+    editingQIssues.push({ id: uid(), text: '', level: 'mid', resolved: false });
+    renderQIssues();
+  });
+  document.getElementById('q-save-btn').addEventListener('click', () => saveQuestion(false));
+  const makeCardBtn = document.getElementById('q-make-card-btn');
+  if (makeCardBtn) makeCardBtn.addEventListener('click', async () => {
+    // 先保存，再生成，避免用户改了一半没保存
+    await saveQuestion(true);
+    questionToCards(editingQId);
+  });
+  const delBtn = document.getElementById('q-del-btn');
+  if (delBtn) delBtn.addEventListener('click', async () => {
+    const ok = await showConfirm({
+      title: '删除题目',
+      desc: `确定删除「${q.title || '未命名'}」？`,
+      confirmText: '删除', danger: true
+    });
+    if (!ok) return;
+    state.questions = state.questions.filter(x => x.id !== q.id);
+    save(); closeQuestionModal(); render();
+  });
+
+  setTimeout(qLoadAttachmentPreviews, 50);
+}
+
+function renderQAttachments() {
+  const box = document.getElementById('q-attachments');
+  if (!box) return;
+  if (!editingQAttachments.length) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--faint)">还没有附件</div>';
+    return;
+  }
+  box.innerHTML = editingQAttachments.map((a, i) => {
+    const isImg = a.kind === 'image';
+    return `<div style="position:relative;border:1px solid var(--border);border-radius:8px;padding:6px 10px;background:var(--hover);display:flex;align-items:center;gap:8px;font-size:12.5px;max-width:220px">
+      ${isImg
+        ? `<img data-att-id="${esc(a.id)}" data-open-att="${esc(a.id)}" style="width:40px;height:40px;object-fit:cover;border-radius:5px;background:var(--border);cursor:pointer">`
+        : `<span data-open-att="${esc(a.id)}" style="font-size:18px;cursor:pointer">📄</span>`}
+      <span style="flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap" title="${esc(a.name)}">${esc(a.name)}</span>
+      <button type="button" data-del-att="${i}" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:14px;padding:2px 4px">×</button>
+    </div>`;
+  }).join('');
+  box.querySelectorAll('[data-open-att]').forEach(el => {
+    el.addEventListener('click', () => qOpenAttachment(el.dataset.openAtt));
+  });
+  box.querySelectorAll('[data-del-att]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      editingQAttachments.splice(Number(btn.dataset.delAtt), 1);
+      renderQAttachments();
+    });
+  });
+  qLoadAttachmentPreviews();
+}
+
+function renderQAIList(aiAnswers) {
+  const box = document.getElementById('q-ai-list');
+  if (!box) return;
+  const entries = Object.entries(aiAnswers);
+  if (!entries.length) entries.push(['deepseek', '']);
+  // 确保 deepseek / doubao 默认存在
+  const keys = new Set(entries.map(([k]) => k));
+  if (!keys.has('deepseek')) entries.unshift(['deepseek', '']);
+  if (!keys.has('doubao')) entries.splice(1, 0, ['doubao', '']);
+
+  box.innerHTML = entries.map(([k, v]) => `
+    <div style="border:1px solid var(--border);border-radius:10px;padding:10px 12px;background:var(--hover)">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:6px">
+        <span style="font-size:12.5px;font-weight:650;text-transform:capitalize">${esc(k)}</span>
+        ${k !== 'deepseek' && k !== 'doubao'
+          ? `<button type="button" data-del-ai="${esc(k)}" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:13px;padding:2px 6px">删除</button>`
+          : ''}
+      </div>
+      <textarea data-ai-key="${esc(k)}" rows="4" style="width:100%;resize:vertical;font-family:inherit;font-size:13px;padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--card);color:var(--text)">${esc(v)}</textarea>
+    </div>
+  `).join('');
+  box.querySelectorAll('[data-del-ai]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const cur = collectQAIAnswers();
+      delete cur[btn.dataset.delAi];
+      renderQAIList(cur);
+    });
+  });
+}
+
+function collectQAIAnswers() {
+  const box = document.getElementById('q-ai-list');
+  const out = {};
+  box.querySelectorAll('[data-ai-key]').forEach(t => {
+    const k = t.dataset.aiKey;
+    const v = t.value;
+    out[k] = v;
+  });
+  return out;
+}
+
+function addQAIAnswer(name) {
+  const cur = collectQAIAnswers();
+  if (cur[name] != null) { alert('该 AI 已存在'); return; }
+  cur[name] = '';
+  renderQAIList(cur);
+}
+
+function renderQIssues() {
+  const box = document.getElementById('q-issues');
+  if (!box) return;
+  if (!editingQIssues.length) {
+    box.innerHTML = '<div style="font-size:12px;color:var(--faint)">还没有记录问题</div>';
+    return;
+  }
+  box.innerHTML = editingQIssues.map((iss, i) => `
+    <div class="q-issue-row">
+      <input type="text" data-iss-idx="${i}" data-iss-k="text" value="${esc(iss.text)}" placeholder="问题描述（如：对策太笼统）" maxlength="120" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--input);font-size:13px">
+      <select data-iss-idx="${i}" data-iss-k="level" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--input);font-size:12.5px">
+        <option value="high" ${iss.level === 'high' ? 'selected' : ''}>严重</option>
+        <option value="mid"  ${iss.level === 'mid'  ? 'selected' : ''}>一般</option>
+        <option value="low"  ${iss.level === 'low'  ? 'selected' : ''}>轻微</option>
+      </select>
+      <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--muted)">
+        <input type="checkbox" data-iss-idx="${i}" data-iss-k="resolved" ${iss.resolved ? 'checked' : ''}>
+        已解决
+      </label>
+      <button type="button" data-del-iss="${i}" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:15px">×</button>
+    </div>
+  `).join('');
+  box.querySelectorAll('[data-iss-idx]').forEach(inp => {
+    inp.addEventListener('input', () => {
+      const i = Number(inp.dataset.issIdx);
+      const k = inp.dataset.issK;
+      if (k === 'resolved') editingQIssues[i][k] = inp.checked;
+      else editingQIssues[i][k] = inp.value;
+    });
+    inp.addEventListener('change', () => {
+      const i = Number(inp.dataset.issIdx);
+      const k = inp.dataset.issK;
+      if (k === 'resolved') editingQIssues[i][k] = inp.checked;
+    });
+  });
+  box.querySelectorAll('[data-del-iss]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      editingQIssues.splice(Number(btn.dataset.delIss), 1);
+      renderQIssues();
+    });
+  });
+}
+
+function saveQuestion(silent) {
+  const title = (document.getElementById('q-title').value || '').trim();
+  if (!title) { toast('请填写标题'); document.getElementById('q-title').focus(); return false; }
+
+  const now = Date.now();
+  const data = {
+    title,
+    category: (document.getElementById('q-category').value || '').trim(),
+    type: (document.getElementById('q-type').value || '').trim(),
+    source: (document.getElementById('q-source').value || '').trim(),
+    questionText: document.getElementById('q-question').value,
+    myAnswer: document.getElementById('q-my-answer').value,
+    aiAnswers: collectQAIAnswers(),
+    score: {
+      got: Number(document.getElementById('q-got').value) || 0,
+      total: Math.max(1, Number(document.getElementById('q-total').value) || 100)
+    },
+    attachments: editingQAttachments.slice(),
+    issues: editingQIssues.filter(i => (i.text || '').trim()),
+    updatedAt: now
+  };
+  if (data.score.got < 0) data.score.got = 0;
+  if (data.score.got > data.score.total) data.score.got = data.score.total;
+
+  if (editingQId) {
+    const q = state.questions.find(x => x.id === editingQId);
+    if (q) Object.assign(q, data);
+  } else {
+    state.questions.push(Object.assign({ id: uid(), createdAt: now, reviewCount: 0, lastReviewAt: null }, data));
+  }
+
+  save();
+  if (!silent) {
+    closeQuestionModal(); render();
+    toast(editingQId ? '已保存' : '已新增');
+  }
+  return true;
+}
+
+function closeQuestionModal() {
+  document.getElementById('question-modal').classList.remove('show');
+  document.getElementById('question-modal-body').innerHTML = '';
+  document.getElementById('question-modal-actions').innerHTML = '';
+  editingQId = null;
+  editingQAttachments = [];
+  editingQIssues = [];
+}
+
+/* 附件选择（全局只挂一次） */
+document.getElementById('q-file-input').addEventListener('change', async (e) => {
+  const files = Array.from(e.target.files || []);
+  e.target.value = '';
+  if (!files.length) return;
+  for (const f of files) {
+    try {
+      const meta = await qUploadFile(f);
+      editingQAttachments.push(meta);
+    } catch (err) {
+      toast(`「${f.name}」上传失败：${err.message}`);
+    }
+  }
+  renderQAttachments();
+});
+
+/* 从列表点进编辑器时，加载附件预览 */
+async function qOpenAttachment(attId) {
+  const att = await qGetAttachment(attId);
+  if (!att || !att.data) { toast('附件已丢失'); return; }
+  try {
+    const blob = await (await fetch(att.data)).blob();
+    const url = URL.createObjectURL(blob);
+    const w = window.open(url, '_blank');
+    if (!w) {
+      toast('浏览器拦截了弹窗，请允许弹窗后重试');
+      URL.revokeObjectURL(url);
+      return;
+    }
+    setTimeout(() => URL.revokeObjectURL(url), 60000);
+  } catch (e) {
+    toast('打开失败：' + e.message);
+  }
+}
 function renderStats() {
   const map = minutesByDay();
   const total = totalMinutes();
@@ -3271,6 +4099,7 @@ function renderHelp() {
       ${KV('↻ 复习', '间隔重复记忆。页面显示当前卡片，正面问题 → 点"显示答案" → 4 个评分按钮（忘了/模糊/记得/简单）。系统根据评分自动安排下次复习')}
       ${KV('❖ 素材库', '收藏文章、金句、事例、公文范例。支持打标签 #公文 #案例 #作文 #金句。每条素材可以切换状态：未读 / 在读 / 已读')}
       ${KV('✎ 笔记', 'Markdown 编辑器，支持 [[双链]]、#标签、插图。工具栏有：插图、预览/编辑、生成卡片、历史版本、删除')}
+      ${KV('❏ 题目集', '错题本。上传题目（图片/PDF/文字）、记录得分、对比答案（我的/DeepSeek/豆包）、整理错因、一键生成复习卡片、参与打印')}
       ${KV('✦ 灵感速记', '随手记录看到的想法、金句、链接。之后可以一键「转任务」或「转笔记」')}
       ${KV('◎ 目标', '追踪量化目标，如"积累 100 条素材"。点 +1 推进进度，可以关联任务')}
       ${KV('▤ 统计', '学习时长、番茄数、连续打卡、习惯热力图、复习数据、周报月报自动生成')}
@@ -3295,6 +4124,12 @@ function renderHelp() {
       ${KV('预览 / 编辑', '切换 Markdown 源码和渲染效果')}
       ${KV('生成卡片', '把笔记里的 Q: / A: 结构自动提取为复习卡片')}
       ${KV('历史', '查看历史版本，可以恢复')}
+      <div style="font-weight:650;margin:14px 0 8px">题目集</div>
+      ${KV('+ 新增题目', '上传图片 / PDF / 文字题干，可填分类、题型、来源')}
+      ${KV('📇 转卡片', '把题目一键变成复习卡片，自动带分类标签进「复习」页')}
+      ${KV('分类筛选', '顶部标签按分类过滤（如：公文 / 案例 / 作文）')}
+      ${KV('状态筛选', '全部 / 待解决 / 得分偏低（<70%） / 已掌握（≥85%）')}
+      ${KV('得分', '记录实际得分和总分，自动算百分比并染色显示')}
       <div style="font-weight:650;margin:14px 0 8px">复习页</div>
       ${KV('显示答案', '从正面翻到背面')}
       ${KV('忘了 / 模糊 / 记得 / 简单', '4 个评分。忘了→5 分钟后再来；简单→间隔加倍')}
@@ -3315,7 +4150,7 @@ function renderHelp() {
         ${Kbd('Esc')} — 关闭任何弹窗<br>
         <br>
         <b>导航（在非输入框状态）</b><br>
-        ${Kbd('T')} 今日 · ${Kbd('P')} 规划 · ${Kbd('K')} 任务 · ${Kbd('B')} 笔记 · ${Kbd('R')} 复习 · ${Kbd('M')} 素材 · ${Kbd('D')} 统计 · ${Kbd('S')} 设置<br>
+        ${Kbd('T')} 今日 · ${Kbd('P')} 规划 · ${Kbd('K')} 任务 · ${Kbd('B')} 笔记 · ${Kbd('R')} 复习 · ${Kbd('M')} 素材 · ${Kbd('D')} 统计 · ${Kbd('Q')} 题目集 · ${Kbd('S')} 设置<br>
         <br>
         <b>新建</b><br>
         ${Kbd('N')} 新建任务 · ${Kbd('⇧')}${Kbd('N')} 新建笔记 · ${Kbd('I')} 跳到灵感速记输入框
@@ -3329,6 +4164,39 @@ function renderHelp() {
         <code style="background:var(--hover);padding:2px 6px;border-radius:4px">## 阶段名 | 4周</code> — <code style="background:var(--hover);padding:2px 6px;border-radius:4px">##</code> 开头当阶段，不写周期自动均分<br>
         <code style="background:var(--hover);padding:2px 6px;border-radius:4px">- 任务</code> / <code style="background:var(--hover);padding:2px 6px;border-radius:4px">* 任务</code> / <code style="background:var(--hover);padding:2px 6px;border-radius:4px">1. 任务</code> / <code style="background:var(--hover);padding:2px 6px;border-radius:4px">- [ ] 任务</code> — 各种列表符号都能识别<br>
         弹窗里有 3 个示例按钮，不确定格式的话点一下参考
+      </div>
+    `)}
+    ${Section('❏ 题目集使用指南', `
+      <div style="font-size:13.5px;line-height:1.9">
+        <b>1. 上传题目</b><br>
+        点「+ 新增题目」→ 填标题、分类（如：公文、案例、作文）、题型、来源。<br>
+        题干可选填文字；<b>附件支持图片和 PDF</b>，单个 ≤ 20MB，可多选，附件存在浏览器本地。<br><br>
+
+        <b>2. 记录得分</b><br>
+        填「实际得分」和「总分」，列表自动按百分比显示颜色：<br>
+        <span style="color:var(--danger)">红 &lt;50%</span> ·
+        <span style="color:var(--warn)">橙 50-69%</span> ·
+        <span style="color:var(--accent)">蓝 70-84%</span> ·
+        <span style="color:var(--success)">绿 ≥85%</span><br><br>
+
+        <b>3. 对比答案</b><br>
+        默认有「我的答案」「DeepSeek」「豆包」三个文本域。点「+ 添加其他 AI 答案」可加更多（kimi、通义千问…）。<br><br>
+
+        <b>4. 整理错因</b><br>
+        每条问题可以标记严重程度（严重 / 一般 / 轻微）和是否已解决。<br>
+        列表顶部汇总"待解决问题"数量，一眼看到还有哪些坑没填。<br><br>
+
+        <b>5. 一键生成复习卡片</b><br>
+        题目卡片右侧有「📇 转卡片」按钮，点一下把「题干 → AI 答案」做成闪卡，直接进复习页。<br>
+        如果有多份 AI 答案，会让你选一个作为卡片背面；题干里的附件不会进卡片，只在标题里标注。<br><br>
+
+        <b>6. 筛选与搜索</b><br>
+        顶部搜索框支持搜标题 / 题干 / 我的答案 / 来源；<br>
+        分类标签按 category 过滤；状态筛选有"全部 / 待解决 / 得分偏低 / 已掌握"。<br><br>
+
+        <b>7. 参与打印</b><br>
+        到「打印中心」勾选「错题集」，可打印成 A4 卷子。<br>
+        默认<b>隐藏参考答案（留白手写）</b>，想直接看答案就在打印选项里取消勾选。
       </div>
     `)}
 
@@ -3347,9 +4215,12 @@ function renderHelp() {
       ${KV('复习卡片不出现？', '卡片有到期时间。只有到达 due 时间的卡片才出现在复习页')}
       ${KV('删了计划，任务没了？', '删计划会连带删除该计划下的所有任务。删除前请确认')}
       ${KV('怎么打标签？', '在任务、笔记、素材的标题或正文里写 #标签 就行，会自动收录')}
+      ${KV('题目附件丢了怎么办？', '附件存在浏览器 IndexedDB 里。清缓存、换浏览器、开无痕会丢失，需要重新上传。文字部分会随 JSON 备份一起导出，附件不会')}
+      ${KV('题目能参与打印吗？', '能。打印中心勾选「错题集」，默认隐藏答案留白，也可以取消勾选直接打印完整版')}
+      ${KV('题目怎么变成复习卡片？', '打开题目 → 点「📇 转卡片」按钮，或从题目卡片右侧直接点，会以「题干 → AI 答案」生成 1 张闪卡')}
       ${KV('数据存哪？', '浏览器本地。清缓存会丢，必须定期导出备份')}
     `)}
-  `;
+  `;                                  // ← 加上 )}，再接回原来的 `;
 }
 /* ============================================================
    打印中心
@@ -3381,9 +4252,14 @@ function filterForPrint(type) {
     if (cutoff) list = list.filter(n => inTime(n.createdAt));
     return list;
   }
+  if (type === 'questions') {
+    let list = state.questions.slice();
+    if (opt.tag) list = list.filter(q => (q.category || '') === opt.tag);
+    if (cutoff) list = list.filter(q => inTime(q.createdAt));
+    return list;
+  }
   return [];
 }
-
 function generatePrintHTML() {
   const opt = state.printOptions;
   const parts = [];
@@ -3496,6 +4372,69 @@ function generatePrintHTML() {
     `);
   }
 
+  if (opt.questions) {
+    sectionNum++;
+    const list = filterForPrint('questions');
+    parts.push(`
+      <section class="print-section">
+        <div class="print-section-title">
+          <span>${sectionNum}、错题集</span>
+          <small>共 ${list.length} 题${opt.questionsHideAnswers ? ' · 答案已折叠' : ''}</small>
+        </div>
+        ${list.length ? list.map((x, i) => {
+          const pct = x.score && x.score.total ? Math.round(x.score.got / x.score.total * 100) : null;
+          const issues = (x.issues || []).filter(it => (it.text || '').trim());
+          const aiEntries = Object.entries(x.aiAnswers || {}).filter(([k, v]) => (v || '').trim());
+          return `
+            <div class="print-question">
+              <div class="print-q-header">
+                <span class="print-q-num">第 ${i + 1} 题</span>
+                ${x.category ? `<span class="print-q-tag">${esc(x.category)}</span>` : ''}
+                ${x.type ? `<span class="print-q-tag">${esc(x.type)}</span>` : ''}
+                ${x.source ? `<span class="print-q-src">${esc(x.source)}</span>` : ''}
+                ${pct != null ? `<span class="print-q-score">得分 ${x.score.got} / ${x.score.total}（${pct}%）</span>` : ''}
+              </div>
+              ${x.questionText ? `<div class="print-q-body">${esc(x.questionText).replace(/\n/g, '<br>')}</div>` : ''}
+              ${(x.attachments || []).length ? `<div class="print-q-att">附件 ${x.attachments.length} 个（${x.attachments.map(a => esc(a.name)).join('、')}）</div>` : ''}
+
+              ${x.myAnswer ? `
+                <div class="print-q-block">
+                  <div class="print-q-block-title">我的答案</div>
+                  <div class="print-q-block-body">${esc(x.myAnswer).replace(/\n/g, '<br>')}</div>
+                </div>
+              ` : ''}
+
+              ${!opt.questionsHideAnswers && aiEntries.length ? aiEntries.map(([k, v]) => `
+                <div class="print-q-block">
+                  <div class="print-q-block-title">${esc(k)} 参考答案</div>
+                  <div class="print-q-block-body">${esc(v).replace(/\n/g, '<br>')}</div>
+                </div>
+              `).join('') : ''}
+
+              ${opt.questionsHideAnswers && aiEntries.length ? `
+                <div class="print-q-hidden">参考答案 ${aiEntries.length} 份（已折叠，可手写作答）</div>
+                <div class="print-q-blank"></div>
+              ` : ''}
+
+              ${issues.length ? `
+                <div class="print-q-issues">
+                  <div class="print-q-block-title">问题清单</div>
+                  <ul class="print-q-issue-list">
+                    ${issues.map(it => `<li class="${it.resolved ? 'resolved' : ''}">
+                      <span class="lvl lvl-${it.level || 'mid'}">${it.level === 'high' ? '严重' : it.level === 'low' ? '轻微' : '一般'}</span>
+                      <span>${esc(it.text)}</span>
+                      ${it.resolved ? '<span class="ok">✓ 已解决</span>' : ''}
+                    </li>`).join('')}
+                  </ul>
+                </div>
+              ` : ''}
+            </div>
+          `;
+        }).join('') : '<div class="print-empty">没有符合条件的题目</div>'}
+      </section>
+    `);
+  }
+
   if (!parts.length) {
     return '<div class="print-empty">请在左侧选择要打印的内容</div>';
   }
@@ -3512,6 +4451,7 @@ function renderPrint() {
   const resCount = filterForPrint('resources').length;
   const noteCount = filterForPrint('notes').length;
   const planCount = state.plans.length;
+  const questionCount = filterForPrint('questions').length;
 
   const tagSet = new Set();
   state.cards.forEach(c => (c.tags||[]).forEach(t => tagSet.add(t)));
@@ -3544,6 +4484,9 @@ function renderPrint() {
           <div class="print-check ${opt.plans ? 'checked' : ''}" data-action="print-toggle" data-key="plans">
             <span class="box"></span><span>学习计划</span><span class="count">${planCount} 个</span>
           </div>
+          <div class="print-check ${opt.questions ? 'checked' : ''}" data-action="print-toggle" data-key="questions">
+            <span class="box"></span><span>错题集</span><span class="count">${questionCount} 题</span>
+          </div>
         </div>
 
         <div class="print-option-group">
@@ -3575,6 +4518,13 @@ function renderPrint() {
           </div>
           <div class="print-check ${opt.includeTimestamp ? 'checked' : ''}" data-action="print-toggle" data-key="includeTimestamp">
             <span class="box"></span><span>页面底部显示导出时间</span>
+          </div>
+        </div>
+
+        <div class="print-option-group">
+          <div class="print-option-group-title">错题集选项</div>
+          <div class="print-check ${opt.questionsHideAnswers ? 'checked' : ''}" data-action="print-toggle" data-key="questionsHideAnswers">
+            <span class="box"></span><span>隐藏参考答案（留白手写）</span>
           </div>
         </div>
       </div>
@@ -3668,6 +4618,7 @@ function renderSettings() {
         <div class="row"><div class="row-main"><div class="row-title">笔记</div></div><span class="card-count">${state.notes.length}</span></div>
         <div class="row"><div class="row-main"><div class="row-title">素材</div></div><span class="card-count">${state.resources.length}</span></div>
         <div class="row"><div class="row-main"><div class="row-title">复习卡片</div></div><span class="card-count">${state.cards.length}</span></div>
+        <div class="row"><div class="row-main"><div class="row-title">题目集</div></div><span class="card-count">${state.questions.length}</span></div>
         <div class="row"><div class="row-main"><div class="row-title">目标 / 习惯</div></div><span class="card-count">${state.goals.length} / ${state.habits.length}</span></div>
         <div class="row"><div class="row-main"><div class="row-title">占用空间</div></div><span class="card-count">${(size / 1024).toFixed(1)} KB</span></div>
       </div>
@@ -3692,6 +4643,7 @@ const VIEWS = {
   review:    { label: '复习',     icon: '↻', render: renderReview },
   resources: { label: '素材库',   icon: '❖', render: renderResources },
   notes:     { label: '笔记',     icon: '✎', render: renderNotes },
+  questions: { label: '题目集',   icon: '❏', render: renderQuestions },
   inbox:     { label: '灵感速记', icon: '✦', render: renderInbox },
   goals:     { label: '目标',     icon: '◎', render: renderGoals },
   stats:     { label: '统计',     icon: '▤', render: renderStats },
@@ -3702,7 +4654,7 @@ const VIEWS = {
 
 const NAV_GROUPS = [
   { label: '备考', items: ['today', 'plans', 'tasks', 'review', 'stats'] },
-  { label: '内容', items: ['resources', 'notes', 'inbox'] },
+  { label: '内容', items: ['resources', 'notes', 'questions', 'inbox'] },
   { label: '其他', items: ['goals', 'help', 'print', 'settings'] }
 ];
 function renderNav() {
@@ -3731,7 +4683,7 @@ function renderMobileTabbar() {
   const tabs = [
     { key: 'today', icon: '☀', label: '今日' },
     { key: 'plans', icon: '⊞', label: '规划' },
-    { key: 'notes', icon: '✎', label: '笔记' },
+    { key: 'questions', icon: '❏', label: '题目' },
     { key: 'review', icon: '↻', label: '复习', badge: reviewCount },
     { key: 'more', icon: '⋯', label: '更多' }
   ];
@@ -3755,6 +4707,7 @@ function renderHeader() {
   const subMap = {
     today: '☀ 保持节奏', plans: '⊞ 阶段推进', tasks: '◐ 今日清单',
     resources: '❖ 公文·案例·作文', notes: '✎ 我的笔记',
+    questions: '❏ 错题本 · 答案对比',
     review: '↻ 间隔复习', inbox: '✦ 随手记',
     goals: '◎ 目标追踪', stats: '▤ 数据看板',
     help: '? 页面与按钮说明',
@@ -4187,12 +5140,23 @@ document.addEventListener('click',async (e) => {
       break;
     case 'print-reset':
       state.printOptions = {
-        cards: true, resources: true, notes: false, plans: false,
+        cards: true, resources: true, notes: false, plans: false, questions: false,
         tag: '', range: 'all',
         cardsOnlyDue: false, cardsWithSpace: true,
+        questionsHideAnswers: true,
         includeTimestamp: true
       };
       render();
+      break;
+    /* --- 题目集 --- */
+    case 'q-add': openQuestionEditor(null); break;
+    case 'q-open': openQuestionEditor(id); break;
+    case 'q-filter-cat': state.qFilterCat = el.dataset.cat; render(); break;
+    case 'q-filter-status': state.qFilterStatus = el.dataset.status; render(); break;
+    case 'close-question': closeQuestionModal(); break;
+    case 'q-to-card':
+      e.stopPropagation();
+      questionToCards(id);
       break;
     case 'clear-all': {
       const ok = await showConfirm({
@@ -4206,8 +5170,10 @@ document.addEventListener('click',async (e) => {
       state.notes = []; state.cards = []; state.sessions = [];
       state.goals = []; state.habits = []; state.plans = []; state.expandedPlans = {};
       state.countdowns = [];
+      state.questions = [];
       state.activeNoteId = null; state.tagFilter = null;
-        save(); render(); toast('已清空');
+      state.qSearch = ''; state.qFilterCat = ''; state.qFilterStatus = 'all';
+      save(); render(); toast('已清空');
       break;
     }
   }
@@ -4233,6 +5199,9 @@ document.addEventListener('keydown',async (e) => {
     return;
   }
   if (e.key === 'Escape') {
+    if (document.getElementById('question-modal').classList.contains('show')) {
+      closeQuestionModal(); return;
+    }
     if (document.getElementById('search-modal').classList.contains('show')) { closeSearch(); return; }
     if (document.getElementById('shortcuts-modal').classList.contains('show')) {
       document.getElementById('shortcuts-modal').classList.remove('show'); return;
@@ -4258,7 +5227,7 @@ document.addEventListener('keydown',async (e) => {
   }
   if (e.key === '/') { e.preventDefault(); openSearch(); return; }
   const k = e.key.toLowerCase();
-  const navMap = { t: 'today', p: 'plans', k: 'tasks', b: 'notes', r: 'review', m: 'resources', d: 'stats', h: 'help', s: 'settings' };
+  const navMap = { t: 'today', p: 'plans', k: 'tasks', b: 'notes', r: 'review', m: 'resources', d: 'stats', h: 'help', s: 'settings', q: 'questions' };
   if (navMap[k]) { state.view = navMap[k]; state.reviewShowAnswer = false; render(); return; }
   if (k === 'n' && !e.shiftKey) {
     e.preventDefault();
@@ -4283,6 +5252,13 @@ document.addEventListener('keydown',async (e) => {
   }
 });
 
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'q-search-input') {
+    state.qSearch = e.target.value;
+    const area = document.getElementById('q-list-area');
+    if (area) area.innerHTML = renderQuestionList();
+  }
+});
 document.getElementById('search-input').addEventListener('input', () => { searchIndex = 0; renderSearchResults(); });
 document.getElementById('search-input').addEventListener('keydown', (e) => {
   if (e.key === 'ArrowDown') { e.preventDefault(); searchIndex = Math.min(searchIndex + 1, searchResults.length - 1); renderSearchResults(); }
@@ -4423,6 +5399,11 @@ async function doImport(data) {
   state.habits    = data.habits || [];
   state.plans     = data.plans || [];
   state.countdowns = data.countdowns || [];
+  state.questions = (data.questions || []).map(q => ({
+    aiAnswers: {}, issues: [], attachments: [],
+    score: { got: 0, total: 100 },
+    ...q
+  }));
   if (data.pomodoroConfig) {
     state.pomodoro.focusDuration = data.pomodoroConfig.focusDuration || 25 * 60;
     state.pomodoro.breakDuration = data.pomodoroConfig.breakDuration || 5 * 60;
@@ -4454,10 +5435,10 @@ async function exportJSON() {
     notes: state.notes, cards: state.cards, sessions: state.sessions,
     goals: state.goals, habits: state.habits, plans: state.plans,
     countdowns: state.countdowns,
-    countdowns: state.countdowns,
+    questions: state.questions,
     pomodoroConfig: { focusDuration: state.pomodoro.focusDuration, breakDuration: state.pomodoro.breakDuration },
     attachments
-  }, null, 2);
+  });
   downloadFile(`遴选备考-备份-${dateKey()}.json`, data, 'application/json');
   toast(attachments.length ? `已导出（含 ${attachments.length} 个附件）` : '已导出备份');
 }
