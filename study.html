@@ -72,7 +72,15 @@
     position: sticky; top: 0; height: 100vh;
     display: flex; flex-direction: column; overflow-y: auto; z-index: 40;
   }
-  .brand { font-size: 15.5px; font-weight: 700; padding: 0 10px 20px; display: flex; align-items: center; gap: 10px; }
+ .brand-back {
+  width: 30px; height: 30px; border-radius: 9px;
+  display: flex; align-items: center; justify-content: center;
+  color: var(--muted); flex-shrink: 0;
+  text-decoration: none; background: var(--hover);
+  transition: background .15s, color .15s;
+}
+.brand-back:hover { background: var(--accent-soft); color: var(--accent); }
+.brand-back svg { width: 14px; height: 14px; }
   .brand-logo {
     width: 30px; height: 30px; border-radius: 9px;
     background: linear-gradient(135deg, #4338ca, #6366f1);
@@ -1013,45 +1021,19 @@
 </style>
 </head>
 <body>
-<!-- 返回总工作台 -->
-<a href="./index.html" class="back-home">← 工作台</a>
-
-<style>
-  .back-home {
-    position: fixed;
-    top: calc(12px + env(safe-area-inset-top));
-    left: calc(12px + env(safe-area-inset-left));
-    z-index: 9999;
-    display: inline-flex; align-items: center; gap: 6px;
-    padding: 8px 14px;
-    font: 600 13px -apple-system, "PingFang SC", "Microsoft YaHei", sans-serif;
-    color: #1b2437;
-    text-decoration: none;
-    background: rgba(255,255,255,.92);
-    backdrop-filter: blur(10px);
-    -webkit-backdrop-filter: blur(10px);
-    border: 1px solid rgba(0,0,0,.08);
-    border-radius: 10px;
-    box-shadow: 0 4px 16px rgba(0,0,0,.08);
-    transition: transform .18s, box-shadow .18s;
-  }
-  .back-home:hover { transform: translateX(-2px); box-shadow: 0 6px 20px rgba(0,0,0,.14); }
-  [data-theme="dark"] .back-home {
-    background: rgba(24,27,36,.92);
-    color: #e6e9f0;
-    border-color: rgba(255,255,255,.1);
-  }
-</style>
 
 <div id="app">
   <aside class="sidebar" id="sidebar">
-    <div class="brand">
-      <div class="brand-logo">学</div>
-      <div>
-        <div>学习工作台</div>
-        <div class="brand-sub">Study Workbench</div>
-      </div>
-    </div>
+  <div class="brand">
+  <a href="./index.html" class="brand-back" title="返回工作台" aria-label="返回工作台">
+    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+  </a>
+  <div class="brand-logo">学</div>
+  <div>
+    <div>学习工作台</div>
+    <div class="brand-sub">Study Workbench</div>
+  </div>
+</div>
     <div class="search-trigger" id="search-trigger">
       <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
       <span>搜索</span>
@@ -1063,15 +1045,12 @@
   <div class="sidebar-overlay" id="sidebar-overlay"></div>
 
   <main class="main">
-    <header class="mobile-header">
-      <button class="menu-btn" id="menu-btn" aria-label="菜单">
-        <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
-      </button>
-      <div class="header-title" id="header-title">今日</div>
-      <button class="search-btn" id="mobile-search-btn" aria-label="搜索">
-        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.4" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg>
-      </button>
-    </header>
+   <header class="mobile-header">
+  <button class="menu-btn" id="menu-btn" aria-label="菜单">☰</button>
+  <div class="header-title" id="header-title">今日</div>
+  <a href="./index.html" class="search-btn" aria-label="返回工作台" title="返回工作台" style="text-decoration:none;font-size:17px;font-weight:600">←</a>
+  <button class="search-btn" id="mobile-search-btn" aria-label="搜索">🔍</button>
+</header>
     <div id="view"></div>
   </main>
 
