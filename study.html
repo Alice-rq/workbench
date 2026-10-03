@@ -1780,6 +1780,8 @@ let state = {
   activeNoteId: null,
   notePreview: false,
   reviewShowAnswer: false,
+  reviewTab: 'review', // 'review' 或 'library'
+  reviewSearch: '',
   tasks: [], inbox: [], resources: [], notes: [], cards: [], sessions: [],
   goals: [], habits: [], plans: [],
   expandedPlans: {},
@@ -3425,12 +3427,89 @@ function renderBacklinks(note) {
   `;
 }
 
+function renderCardLibraryList() {
+  const q = (state.reviewSearch || '').toLowerCase();
+  let list = state.cards.filter(tagMatches);
+  if (q) {
+    list = list.filter(c => 
+      (c.front || '').toLowerCase().includes(q) || 
+      (c.back || '').toLowerCase().includes(q)
+    );
+  }
+  // 按创建时间倒序排列
+  list.sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
+
+  if (!list.length) {
+    return `<div class="empty">没有找到匹配的卡片</div>`;
+  }
+
+  return `
+    <div class="row-list">
+      ${list.map(c => {
+        const daysLeft = c.due ? Math.ceil((c.due - Date.now()) / 86400000) : 0;
+        const dueText = c.due 
+          ? (c.due <= Date.now() ? '已到期' : `${daysLeft} 天后复习`) 
+          : '未安排';
+        return `
+          <div class="row" style="align-items: flex-start; padding: 16px 2px;">
+            <div class="row-main">
+              <div class="row-title" style="font-size: 15px; font-weight: 700; color: var(--text);">${esc(c.front)}</div>
+              <div class="row-title" style="font-size: 13.5px; color: var(--muted); margin-top: 6px; border-left: 3px solid var(--border); padding-left: 8px;">
+                ${esc(c.back)}
+              </div>
+              <div class="row-meta" style="margin-top: 10px;">
+                ${(c.tags || []).map(t => `<span class="tag-chip" data-action="filter-tag" data-tag="${esc(t)}">#${esc(t)}</span>`).join('')}
+                <span class="badge-mini ${c.due <= Date.now() ? 'st-learning' : 'st-done'}">${dueText}</span>
+                ${c.fromQuestionId ? `<span class="badge-mini badge-plan" style="cursor:pointer" data-action="q-open" data-id="${c.fromQuestionId}">来源：题目集</span>` : ''}
+                <span>创建于 ${fmtTime(c.createdAt)}</span>
+              </div>
+            </div>
+            <div class="row-actions" style="opacity: 1;">
+              <button class="btn btn-sm btn-danger" data-action="card-del" data-id="${c.id}">删除</button>
+            </div>
+          </div>
+        `;
+      }).join('')}
+    </div>
+  `;
+}
+
 function renderReview() {
   const cards = dueCards();
   const total = state.cards.filter(tagMatches).length;
+  
+  const tabsHTML = `
+    <div class="filter-tabs" style="margin-bottom: 20px;">
+      <button class="filter-tab ${state.reviewTab === 'review' ? 'active' : ''}" data-action="switch-review-tab" data-tab="review">📖 开始复习</button>
+      <button class="filter-tab ${state.reviewTab === 'library' ? 'active' : ''}" data-action="switch-review-tab" data-tab="library">🗂 卡片库 (${total})</button>
+    </div>
+  `;
+
+  if (state.reviewTab === 'library') {
+    return `
+      <div class="page-head">
+        <div class="page-title">卡片库</div>
+        <div class="page-sub">共 ${total} 张卡片，可以随时在这里查看和管理</div>
+      </div>
+      ${tabsHTML}
+      ${renderTagFilterBar()}
+      <div class="card" style="padding: 16px;">
+        <div class="input-row" style="margin-bottom: 16px;">
+          <input type="text" id="review-search-input" placeholder="搜索卡片正面或背面内容…" value="${esc(state.reviewSearch || '')}" style="flex: 1;">
+          ${state.reviewSearch ? `<button class="btn btn-ghost" data-action="clear-review-search">清除</button>` : ''}
+        </div>
+        <div id="card-library-area">
+          ${renderCardLibraryList()}
+        </div>
+      </div>
+    `;
+  }
+
+  // 复习模式（原有逻辑）
   if (!total) {
     return `
       <div class="page-head"><div class="page-title">复习</div><div class="page-sub">间隔重复记忆，先把知识点做成卡片</div></div>
+      ${tabsHTML}
       ${renderTagFilterBar()}
       <div class="card">
         <div class="card-head"><div class="card-title"><span class="dot"></span>新建卡片</div></div>
@@ -3445,6 +3524,7 @@ function renderReview() {
         <div class="empty">还没有卡片</div>
       </div>`;
   }
+
   const card = cards[0];
   const body = card ? `
     <div class="flashcard">
@@ -3472,6 +3552,7 @@ function renderReview() {
       <div class="page-title">复习</div>
       <div class="page-sub">共 ${total} 张卡片 · ${cards.length} 张待复习</div>
     </div>
+    ${tabsHTML}
     ${renderTagFilterBar()}
     ${body}
     <div class="card" style="margin-top:16px">
@@ -3484,7 +3565,6 @@ function renderReview() {
     </div>
   `;
 }
-
 function renderGoals() {
   const list = state.goals.slice().sort((a, b) => (b.createdAt || 0) - (a.createdAt || 0));
   return `
@@ -4900,6 +4980,27 @@ document.addEventListener('click',async (e) => {
   const id = el.dataset.id;
 
   switch (action) {
+    case 'switch-review-tab':
+      state.reviewTab = el.dataset.tab;
+      state.reviewSearch = ''; // 切换时清空搜索
+      render();
+      break;
+    case 'clear-review-search':
+      state.reviewSearch = '';
+      render();
+      break;
+    case 'card-del': {
+      const okDel = await showConfirm({
+        title: '删除卡片',
+        desc: '确定要删除这张复习卡片吗？此操作不可恢复。',
+        confirmText: '删除',
+        danger: true
+      });
+      if (!okDel) break;
+      state.cards = state.cards.filter(c => c.id !== id);
+      save(); render(); toast('卡片已删除');
+      break;
+    }
     case 'close-search': closeSearch(); break;
     case 'close-shortcuts': document.getElementById('shortcuts-modal').classList.remove('show'); break;
     case 'close-versions': closeVersions(); break;
@@ -5416,6 +5517,11 @@ document.addEventListener('keydown',async (e) => {
 });
 
 document.addEventListener('input', (e) => {
+  if (e.target.id === 'review-search-input') {
+    state.reviewSearch = e.target.value;
+    const area = document.getElementById('card-library-area');
+    if (area) area.innerHTML = renderCardLibraryList();
+  }
   if (e.target.id === 'q-search-input') {
     state.qSearch = e.target.value;
     const area = document.getElementById('q-list-area');
