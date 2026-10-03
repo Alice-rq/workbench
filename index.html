@@ -2015,7 +2015,7 @@ function onResult(item) {
 function finishResult(item) {
   currentPick = { item, settled: false };
 
-  // 同步到全局：更新 global-bar 的"当前任务" + 持久化 currentPick（跳转后能恢复）
+  // 关键：写全局，刷新左上角"当前任务" + 持久化 currentPick（跳转后能恢复）
   writeGlobal({
     wheelPick: {
       name: item.name,
@@ -2039,6 +2039,9 @@ function finishResult(item) {
       at: Date.now()
     }
   });
+
+  // 同页面立即通知 global-bar 刷新
+  if (window.GlobalBar && GlobalBar.refreshPick) GlobalBar.refreshPick();
 
   const mins = Math.round(item.minutes);
   const resultEl = $('result');
@@ -2095,6 +2098,13 @@ function checkin(silent) {
   $('result').innerHTML = p !== 0
     ? '✅ 已打卡：<b>' + escapeHtml(item.name) + '</b> · ' + (p > 0 ? '+' : '') + p + ' 分'
     : '✅ 已打卡：<b>' + escapeHtml(item.name) + '</b>';
+
+  // 打卡完成后清掉持久化，防止刷新后重复显示"待打卡"
+  try {
+    const g = readGlobal();
+    delete g.wheelPickPersist;
+    localStorage.setItem('workbench-global-v1', JSON.stringify(g));
+  } catch (e) {}
 
   // 打卡完成后清掉持久化，防止刷新后重复显示"待打卡"
   try {
@@ -3303,8 +3313,8 @@ window.addEventListener('appinstalled', () => {
 function boot() {
   wheelCanvas = $('wheelCanvas');
   wheelCtx = wheelCanvas.getContext('2d');
-subCanvas = $('subWheelCanvas');
-subCtx = subCanvas.getContext('2d');
+  subCanvas = $('subWheelCanvas');
+  subCtx = subCanvas.getContext('2d');
 
   applyThemeState();
   renderActivityList();
