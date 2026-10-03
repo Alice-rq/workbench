@@ -580,6 +580,68 @@
   .group-quick button:active {
     transform: scale(.96);
   }
+/* ===== 子转盘 ===== */
+.sub-wheel-box {
+  position: relative; width: 100%; max-width: 260px; aspect-ratio: 1;
+  margin: 8px auto;
+}
+.sub-wheel-box canvas {
+  position: absolute; inset: 0; width: 100%; height: 100%; border-radius: 50%;
+}
+.sub-wheel-box .wheel-pointer {
+  position: absolute; top: -3px; left: 50%; transform: translateX(-50%);
+  width: 0; height: 0;
+  border-left: 8px solid transparent;
+  border-right: 8px solid transparent;
+  border-top: 16px solid #ff5a76;
+  filter: drop-shadow(0 2px 4px rgba(255,90,118,.35));
+  z-index: 3; pointer-events: none;
+}
+.sub-wheel-box .wheel-spin-btn {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 28%; aspect-ratio: 1;
+  border-radius: 50%; border: 3px solid #fff;
+  background: var(--accent); color: #fff;
+  font-size: 13px; font-weight: 800; letter-spacing: 1px; z-index: 2;
+  box-shadow: 0 6px 16px color-mix(in srgb, var(--accent) 40%, transparent);
+  transition: transform .15s;
+}
+.sub-wheel-box .wheel-spin-btn:active:not(:disabled) { transform: translate(-50%,-50%) scale(.94); }
+.sub-wheel-box .wheel-spin-btn:disabled { opacity: .75; cursor: default; }
+
+.sub-item-edit-row {
+  display: grid;
+  grid-template-columns: minmax(0,1fr) 52px 52px 52px 26px;
+  gap: 5px; align-items: center; margin-bottom: 5px;
+}
+.sub-item-edit-row input {
+  width: 100%; padding: 6px 8px; font-size: 12.5px;
+  border: 1px solid var(--line); border-radius: 7px;
+  background: var(--input); color: var(--text);
+  min-width: 0;
+}
+.sub-item-edit-row input:focus {
+  outline: none; border-color: var(--accent); background: var(--card);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+.sub-item-edit-row .del-btn {
+  width: 26px; height: 26px; padding: 0;
+  border-radius: 6px; border: none; background: transparent;
+  color: var(--muted); cursor: pointer; font-size: 14px;
+}
+.sub-item-edit-row .del-btn:hover { background: var(--red-soft); color: var(--red); }
+
+.sub-items-section {
+  margin-top: 4px; padding: 10px 12px;
+  border: 1px dashed var(--line); border-radius: 10px;
+  background: var(--input);
+}
+.sub-items-section .sub-head {
+  display: flex; align-items: center; justify-content: space-between;
+  font-size: 12px; font-weight: 600; color: var(--muted); margin-bottom: 8px;
+}
+.sub-items-section .sub-list { max-height: 220px; overflow-y: auto; }
   /* 色板 + 自定义取色器 */
   .color-row {
     display: flex; align-items: center; gap: 8px; flex-wrap: wrap;
@@ -1058,6 +1120,21 @@
         <input id="act-points" type="number" min="-100" max="100" step="1" value="10" inputmode="numeric" />
       </label>
     </div>
+     <div class="field">
+      <span>子转盘（可选）</span>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 0;">
+        <input type="checkbox" id="act-has-sub" style="width:16px;height:16px;accent-color:var(--accent)">
+        <span>抽到这个活动后，再抽一次子转盘</span>
+      </label>
+      <div class="sub-items-section" id="act-sub-section" style="display:none">
+        <div class="sub-head">
+          <span>子项</span>
+          <button type="button" class="btn" id="act-add-sub"
+            style="font-size:11.5px;padding:4px 10px;min-height:26px;">＋ 添加子项</button>
+        </div>
+        <div class="sub-list" id="act-sub-list"></div>
+      </div>
+    </div>
     <label class="field">
       <span>跳转链接（选填，抽到后自动进入）</span>
       <input id="act-url" type="text" inputmode="url" placeholder="./study.html" />
@@ -1082,6 +1159,23 @@
     <div class="modal-actions">
       <button type="button" class="btn" data-close>取消</button>
       <button type="button" class="btn primary" id="group-new-save">确定</button>
+    </div>
+  </div>
+</div>
+<!-- ================= 子转盘弹窗 ================= -->
+<div class="modal" id="subWheelModal">
+  <div class="modal-mask"></div>
+  <div class="modal-card" role="dialog" style="max-width:380px">
+    <h2 id="subWheelTitle">选择子项</h2>
+    <div class="sub-wheel-box">
+      <canvas id="subWheelCanvas"></canvas>
+      <div class="wheel-pointer"></div>
+      <button class="wheel-spin-btn" id="subSpinBtn" type="button">抽</button>
+    </div>
+    <p class="result" id="subResult" style="margin-top:10px;text-align:center">点击「抽」从子项里选一个</p>
+    <div class="modal-actions" style="justify-content:space-between">
+      <button type="button" class="btn" id="subSkipBtn">跳过（直接用父活动）</button>
+      <button type="button" class="btn primary" id="subAcceptBtn" disabled>确定</button>
     </div>
   </div>
 </div>
@@ -1445,7 +1539,6 @@ const DEFAULT_ACTIVITIES = [
   { name:'看视频',       group:'娱乐', weight:1, minutes:0,  points:-5,  color:'#ff6b6b', url:null },
   { name:'休息一下',     group:'生活', weight:1, minutes:10, points:0,   color:'#94a3b8', url:null }
 ];
-
 let wheelState = loadWheel();
 function loadWheel() {
   try {
@@ -1463,7 +1556,14 @@ function loadWheel() {
         minutes: Number(a.minutes) || 0,
         points: Number(a.points) || 0,
         color: isHex(a.color) ? a.color : PALETTE[0],
-        url: a.url || null
+        url: a.url || null,
+        subItems: Array.isArray(a.subItems) ? a.subItems.map(s => ({
+          id: s.id || uid(),
+          name: String(s.name || '').slice(0, 20),
+          weight: Number(s.weight) || 1,
+          minutes: Number(s.minutes) || 0,
+          points: Number(s.points) || 0
+        })) : []
       })),
       score: Number(d.score) || 0,
       history: Array.isArray(d.history) ? d.history.slice(0, 200) : [],
@@ -1486,7 +1586,8 @@ function initWheelData() {
       name: d.name, group: d.group, enabled: true,
       weight: d.weight, minutes: d.minutes, points: d.points,
       color: d.color || PALETTE[i % PALETTE.length],
-      url: d.url || null
+      url: d.url || null,
+      subItems: []
     })),
     score: 0,
     history: [],
@@ -1616,6 +1717,209 @@ function resizeWheel() {
 }
 
 /* =========================================================
+   6.5 子转盘
+   ======================================================= */
+let subWheelParent = null;
+let subWheelRotation = 0;
+let subWheelSpinning = false;
+let subPicked = null;
+let subCanvas, subCtx, subSize = 0;
+
+function shade(hex, amt) {
+  const m = /^#([0-9a-f]{6})$/i.exec(hex);
+  if (!m) return hex;
+  const n = parseInt(m[1], 16);
+  let r = (n >> 16) & 255, g = (n >> 8) & 255, b = n & 255;
+  const f = amt / 100;
+  if (f < 0) { r = Math.round(r * (1 + f)); g = Math.round(g * (1 + f)); b = Math.round(b * (1 + f)); }
+  else { r = Math.round(r + (255 - r) * f); g = Math.round(g + (255 - g) * f); b = Math.round(b + (255 - b) * f); }
+  return '#' + [r, g, b].map(v => v.toString(16).padStart(2, '0')).join('');
+}
+
+function getSubSectors(items) {
+  const list = (items || []).filter(s => s.weight > 0 && s.name);
+  const total = list.reduce((s, x) => s + x.weight, 0);
+  if (total <= 0) return [];
+  let acc = 0;
+  return list.map(a => {
+    const start = (acc / total) * TAU;
+    acc += a.weight;
+    const end = (acc / total) * TAU;
+    return { item: a, start, end, mid: (start + end) / 2 };
+  });
+}
+
+function drawSubWheel() {
+  if (!subSize || !subWheelParent) return;
+  const cx = subSize / 2, cy = subSize / 2, R = subSize / 2 - 3;
+  subCtx.clearRect(0, 0, subSize, subSize);
+  subCtx.beginPath();
+  subCtx.arc(cx, cy, R, 0, TAU);
+  subCtx.fillStyle = '#f0f2f6';
+  subCtx.fill();
+
+  const sectors = getSubSectors(subWheelParent.subItems || []);
+  if (!sectors.length) {
+    subCtx.fillStyle = '#9aa3b5';
+    subCtx.font = '600 ' + Math.max(11, subSize * 0.04) + 'px sans-serif';
+    subCtx.textAlign = 'center';
+    subCtx.textBaseline = 'middle';
+    subCtx.fillText('没有可用子项', cx, cy);
+    return;
+  }
+
+  const base = subWheelParent.color || '#4f7cff';
+  const alt = shade(base, -22);
+  sectors.forEach((sec, i) => {
+    const span = sec.end - sec.start;
+    const gap = span > 0.03 ? 0.006 : 0;
+    const a0 = -Math.PI / 2 + sec.start + gap + subWheelRotation;
+    const a1 = -Math.PI / 2 + sec.end - gap + subWheelRotation;
+    subCtx.beginPath();
+    subCtx.moveTo(cx, cy);
+    subCtx.arc(cx, cy, R, a0, a1);
+    subCtx.closePath();
+    subCtx.fillStyle = (i % 2 === 0) ? base : alt;
+    subCtx.fill();
+    subCtx.lineWidth = 2;
+    subCtx.strokeStyle = '#ffffff';
+    subCtx.stroke();
+  });
+
+  subCtx.beginPath();
+  subCtx.arc(cx, cy, R - 1, 0, TAU);
+  subCtx.lineWidth = 3;
+  subCtx.strokeStyle = '#ffffff';
+  subCtx.stroke();
+
+  const fontSize = Math.max(9, Math.min(13, subSize * 0.04));
+  subCtx.font = '700 ' + fontSize + 'px -apple-system,"PingFang SC",sans-serif';
+  subCtx.fillStyle = '#414a5e';
+  subCtx.textBaseline = 'middle';
+  sectors.forEach(sec => {
+    const span = sec.end - sec.start;
+    if (span * R * 0.55 < 14) return;
+    const ang = -Math.PI / 2 + sec.mid + subWheelRotation;
+    const norm = ((ang % TAU) + TAU) % TAU;
+    const flip = norm > Math.PI / 2 && norm < Math.PI * 1.5;
+    subCtx.save();
+    subCtx.translate(cx, cy);
+    subCtx.rotate(ang);
+    if (flip) {
+      subCtx.rotate(Math.PI);
+      subCtx.textAlign = 'left';
+      subCtx.fillText(sec.item.name, -(R - 16), 0);
+    } else {
+      subCtx.textAlign = 'right';
+      subCtx.fillText(sec.item.name, R - 16, 0);
+    }
+    subCtx.restore();
+  });
+}
+
+function resizeSubWheel() {
+  const box = document.querySelector('#subWheelModal .sub-wheel-box');
+  if (!box || !subCanvas) return;
+  const w = box.clientWidth;
+  if (!w) return;
+  const dpr = Math.min(window.devicePixelRatio || 1, 2);
+  const px = Math.round(w * dpr);
+  if (subCanvas.width !== px) {
+    subCanvas.width = px;
+    subCanvas.height = px;
+  }
+  subSize = w;
+  subCtx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  drawSubWheel();
+}
+
+function getSubSectorAtPointer(rot, items) {
+  const sectors = getSubSectors(items);
+  if (!sectors.length) return null;
+  const rel = ((-rot) % TAU + TAU) % TAU;
+  for (const s of sectors) {
+    if (rel >= s.start && rel < s.end) return s;
+  }
+  return sectors[sectors.length - 1];
+}
+
+function openSubWheel(parent) {
+  subWheelParent = parent;
+  subPicked = null;
+  subWheelRotation = 0;
+  $('subWheelTitle').textContent = '「' + parent.name + '」选一个';
+  $('subResult').textContent = '点击「抽」从子项里选一个';
+  $('subAcceptBtn').disabled = true;
+  $('subSpinBtn').disabled = false;
+  $('subWheelModal').classList.add('is-open');
+  setTimeout(() => {
+    resizeSubWheel();
+    window.addEventListener('resize', resizeSubWheel);
+  }, 60);
+}
+
+function spinSub() {
+  if (subWheelSpinning || !subWheelParent) return;
+  const sectors = getSubSectors(subWheelParent.subItems || []);
+  if (!sectors.length) return;
+
+  const total = sectors.reduce((s, x) => s + x.item.weight, 0);
+  let r = Math.random() * total;
+  let picked = sectors[sectors.length - 1];
+  for (const s of sectors) {
+    r -= s.item.weight;
+    if (r <= 0) { picked = s; break; }
+  }
+
+  const span = picked.end - picked.start;
+  const local = picked.start + span * (0.18 + Math.random() * 0.64);
+  const cur = ((subWheelRotation % TAU) + TAU) % TAU;
+  const tgt = (((-local) % TAU) + TAU) % TAU;
+  let delta = tgt - cur;
+  if (delta < 0) delta += TAU;
+  const turns = 3 + Math.floor(Math.random() * 3);
+  const startRot = subWheelRotation;
+  const totalRot = delta + TAU * turns;
+  const duration = 2800 + Math.random() * 600;
+  const t0 = performance.now();
+
+  subWheelSpinning = true;
+  $('subSpinBtn').disabled = true;
+  $('subAcceptBtn').disabled = true;
+  $('subResult').textContent = '转动中…';
+
+  let lastTickSector = getSubSectorAtPointer(subWheelRotation, subWheelParent.subItems);
+  let lastTickTime = performance.now();
+
+  function frame(now) {
+    const t = Math.min(1, (now - t0) / duration);
+    const e = 1 - Math.pow(1 - t, 4);
+    subWheelRotation = startRot + totalRot * e;
+
+    const curSec = getSubSectorAtPointer(subWheelRotation, subWheelParent.subItems);
+    if (curSec && curSec !== lastTickSector) {
+      if (now - lastTickTime > 22) { playTickSound(); lastTickTime = now; }
+      lastTickSector = curSec;
+    }
+
+    drawSubWheel();
+    if (t < 1) requestAnimationFrame(frame);
+    else {
+      subWheelRotation = startRot + totalRot;
+      drawSubWheel();
+      subWheelSpinning = false;
+      subPicked = picked.item;
+      $('subSpinBtn').disabled = false;
+      $('subAcceptBtn').disabled = false;
+      const mins = Math.round(picked.item.minutes || 0);
+      $('subResult').innerHTML = '🎯 抽到：<b>' + escapeHtml(picked.item.name) + '</b>'
+        + (mins > 0 ? ' · ' + mins + ' 分钟' : '');
+      playChime(2);
+    }
+  }
+  requestAnimationFrame(frame);
+}
+/* =========================================================
    7. 抽签
    ======================================================= */
 let currentPick = null;
@@ -1698,18 +2002,18 @@ function spin() {
 }
 
 function onResult(item) {
-  currentPick = { item, settled: false };
+  // 有子项 → 弹子转盘
+  const hasSub = Array.isArray(item.subItems)
+    && item.subItems.filter(s => s.name && s.weight > 0).length > 0;
+  if (hasSub) {
+    openSubWheel(item);
+    return;
+  }
+  finishResult(item);
+}
 
-  writeGlobal({
-    wheelPick: {
-      name: item.name,
-      icon: '🎯',
-      color: item.color,
-      minutes: item.minutes,
-      url: item.url,
-      at: Date.now()
-    }
-  });
+function finishResult(item) {
+  currentPick = { item, settled: false };
 
   const mins = Math.round(item.minutes);
   const resultEl = $('result');
@@ -1719,10 +2023,7 @@ function onResult(item) {
   resultEl.classList.add('pop');
   setTimeout(() => resultEl.classList.remove('pop'), 450);
 
-    if (mins > 0) {
-    startGlobalPomodoro(item.name, mins * 60);
-  }
-
+  if (mins > 0) startGlobalPomodoro(item.name, mins * 60);
   updateCheckinBtn();
 
   if (item.url) {
@@ -1734,7 +2035,7 @@ function onResult(item) {
   }
 }
 
-function updateCheckinBtn() {
+ function updateCheckinBtn() {
   const btn = $('checkinBtn');
   if (!currentPick) {
     btn.disabled = true;
@@ -2041,6 +2342,7 @@ function startDrag(row, id, e) {
    9. 活动编辑弹窗（含自定义取色）
    ======================================================= */
 let editingActId = null;
+let editingActSubItems = [];
 let editingActColor = '#4f7cff';
 
 function renderActSwatches(selected) {
@@ -2162,6 +2464,12 @@ function openActivityEditor(id) {
   editingActColor = a ? a.color : PALETTE[wheelState.activities.length % PALETTE.length];
   renderActSwatches(editingActColor);
   $('actDelete').style.display = a ? '' : 'none';
+editingActSubItems = a && Array.isArray(a.subItems)
+  ? JSON.parse(JSON.stringify(a.subItems))
+  : [];
+$('act-has-sub').checked = editingActSubItems.length > 0;
+$('act-sub-section').style.display = editingActSubItems.length > 0 ? '' : 'none';
+renderActSubItems();
   $('actModal').classList.add('is-open');
   setTimeout(() => $('act-name').focus(), 60);
 }
@@ -2176,7 +2484,10 @@ $('actSave').addEventListener('click', () => {
     minutes: Math.max(0, Math.min(600, Number($('act-minutes').value) || 0)),
     points: Math.max(-100, Math.min(100, Number($('act-points').value) || 0)),
     url: $('act-url').value.trim() || null,
-    color: isHex(editingActColor) ? editingActColor : '#4f7cff'
+    color: isHex(editingActColor) ? editingActColor : '#4f7cff',
+    subItems: ($('act-has-sub').checked && editingActSubItems.length > 0)
+      ? editingActSubItems.filter(s => (s.name || '').trim())
+      : []
   };
   if (editingActId) {
     const a = wheelState.activities.find(x => x.id === editingActId);
@@ -2189,6 +2500,53 @@ $('actSave').addEventListener('click', () => {
   drawWheel();
   $('actModal').classList.remove('is-open');
   editingActId = null;
+});
+
+/* ---- 子转盘编辑器 ---- */
+function renderActSubItems() {
+  const list = $('act-sub-list');
+  if (!editingActSubItems.length) {
+    list.innerHTML = '<div style="font-size:12px;color:var(--muted);padding:6px 0;">还没有子项，点右上角「＋ 添加子项」</div>';
+    return;
+  }
+  list.innerHTML = editingActSubItems.map((s, i) =>
+    '<div class="sub-item-edit-row" data-i="' + i + '">' +
+      '<input type="text" data-k="name" value="' + escapeHtml(s.name || '') + '" placeholder="子项名称" maxlength="20">' +
+      '<input type="number" data-k="weight" value="' + (s.weight || 1) + '" min="0" max="20" step="0.5" title="权重">' +
+      '<input type="number" data-k="minutes" value="' + (s.minutes || 0) + '" min="0" max="600" step="5" title="时长">' +
+      '<input type="number" data-k="points" value="' + (s.points || 0) + '" min="-100" max="100" step="1" title="积分">' +
+      '<button type="button" class="del-btn" data-del>×</button>' +
+    '</div>'
+  ).join('');
+
+  list.querySelectorAll('.sub-item-edit-row').forEach(row => {
+    const i = Number(row.dataset.i);
+    row.querySelectorAll('input').forEach(inp => {
+      inp.addEventListener('input', () => {
+        const k = inp.dataset.k;
+        if (k === 'name') editingActSubItems[i][k] = inp.value.slice(0, 20);
+        else editingActSubItems[i][k] = Number(inp.value) || 0;
+      });
+    });
+    row.querySelector('[data-del]').addEventListener('click', () => {
+      editingActSubItems.splice(i, 1);
+      renderActSubItems();
+      $('act-has-sub').checked = editingActSubItems.length > 0;
+      $('act-sub-section').style.display = editingActSubItems.length > 0 ? '' : 'none';
+    });
+  });
+}
+
+$('act-has-sub').addEventListener('change', e => {
+  $('act-sub-section').style.display = e.target.checked ? '' : 'none';
+  if (e.target.checked && !editingActSubItems.length) {
+    editingActSubItems.push({ id: uid(), name: '', weight: 1, minutes: 25, points: 10 });
+    renderActSubItems();
+  }
+});
+$('act-add-sub').addEventListener('click', () => {
+  editingActSubItems.push({ id: uid(), name: '', weight: 1, minutes: 25, points: 10 });
+  renderActSubItems();
 });
 
 $('actDelete').addEventListener('click', () => {
@@ -2447,7 +2805,14 @@ $('wheelImportFile').addEventListener('change', e => {
           minutes: Number(a.minutes) || 0,
           points: Number(a.points) || 0,
           color: isHex(a.color) ? a.color : PALETTE[0],
-          url: a.url || null
+          url: a.url || null,
+          subItems: Array.isArray(a.subItems) ? a.subItems.map(s => ({
+            id: s.id || uid(),
+            name: String(s.name || '').slice(0, 20),
+            weight: Number(s.weight) || 1,
+            minutes: Number(s.minutes) || 0,
+            points: Number(s.points) || 0
+          })) : []
         })),
         score: Number(data.score) || 0,
         history: Array.isArray(data.history) ? data.history.slice(0, 200) : [],
@@ -2840,6 +3205,40 @@ $('sortNameBtn').addEventListener('click', () => {
 });
 
 /* =========================================================
+   16.5 子转盘按钮
+   ======================================================= */
+$('subSpinBtn').addEventListener('click', spinSub);
+
+$('subAcceptBtn').addEventListener('click', () => {
+  if (!subPicked || !subWheelParent) return;
+  const parent = subWheelParent;
+  const sub = subPicked;
+  const combined = {
+    id: parent.id + ':' + (sub.id || sub.name),
+    name: parent.name + ' · ' + sub.name,
+    group: parent.group,
+    color: parent.color,
+    minutes: (sub.minutes != null ? sub.minutes : parent.minutes) || 0,
+    points: (sub.points != null ? sub.points : parent.points) || 0,
+    url: parent.url,
+    subItems: []
+  };
+  $('subWheelModal').classList.remove('is-open');
+  subWheelParent = null;
+  subPicked = null;
+  finishResult(combined);
+});
+
+$('subSkipBtn').addEventListener('click', () => {
+  if (!subWheelParent) return;
+  const parent = subWheelParent;
+  $('subWheelModal').classList.remove('is-open');
+  subWheelParent = null;
+  subPicked = null;
+  finishResult(Object.assign({}, parent, { subItems: [] }));
+});
+
+/* =========================================================
    17. PWA
    ======================================================= */
 if ('serviceWorker' in navigator && location.protocol.indexOf('http') === 0) {
@@ -2872,6 +3271,8 @@ window.addEventListener('appinstalled', () => {
 function boot() {
   wheelCanvas = $('wheelCanvas');
   wheelCtx = wheelCanvas.getContext('2d');
+subCanvas = $('subWheelCanvas');
+subCtx = subCanvas.getContext('2d');
 
   applyThemeState();
   renderActivityList();
