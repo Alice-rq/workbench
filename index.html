@@ -2015,6 +2015,31 @@ function onResult(item) {
 function finishResult(item) {
   currentPick = { item, settled: false };
 
+  // 同步到全局：更新 global-bar 的"当前任务" + 持久化 currentPick（跳转后能恢复）
+  writeGlobal({
+    wheelPick: {
+      name: item.name,
+      icon: '🎯',
+      color: item.color,
+      minutes: item.minutes,
+      url: item.url,
+      at: Date.now()
+    },
+    wheelPickPersist: {
+      item: {
+        id: item.id,
+        name: item.name,
+        group: item.group || '',
+        color: item.color,
+        minutes: item.minutes,
+        points: item.points,
+        url: item.url
+      },
+      settled: false,
+      at: Date.now()
+    }
+  });
+
   const mins = Math.round(item.minutes);
   const resultEl = $('result');
   resultEl.innerHTML = mins > 0
@@ -2070,6 +2095,13 @@ function checkin(silent) {
   $('result').innerHTML = p !== 0
     ? '✅ 已打卡：<b>' + escapeHtml(item.name) + '</b> · ' + (p > 0 ? '+' : '') + p + ' 分'
     : '✅ 已打卡：<b>' + escapeHtml(item.name) + '</b>';
+
+  // 打卡完成后清掉持久化，防止刷新后重复显示"待打卡"
+  try {
+    const g = readGlobal();
+    delete g.wheelPickPersist;
+    localStorage.setItem('workbench-global-v1', JSON.stringify(g));
+  } catch (e) {}
 
   resetGlobalPomodoro();
 }
@@ -3284,10 +3316,28 @@ subCtx = subCanvas.getContext('2d');
   resizeWheel();
   window.addEventListener('resize', resizeWheel);
 
-   const g = readGlobal();
+  const g = readGlobal();
+
+  // 从全局恢复未完成的 currentPick（跳转工作台后回来）
+  if (g.wheelPickPersist && !currentPick) {
+    const p = g.wheelPickPersist;
+    // 4 小时内的才恢复，避免旧数据干扰
+    if (p.at && Date.now() - p.at < 4 * 3600 * 1000) {
+      currentPick = { item: p.item, settled: !!p.settled };
+      if (!p.settled) {
+        $('result').innerHTML =
+          '🎯 抽到：<b>' + escapeHtml(p.item.name) + '</b> · 完成后点下方打卡';
+      }
+    }
+  }
+
+  // 没有 currentPick 时，才显示"上次抽到"
   if (g.wheelPick && !currentPick) {
     $('result').innerHTML = '上次抽到：<b>' + escapeHtml(g.wheelPick.name) + '</b>';
   }
+
+  // 刷新按钮状态（关键：让"完成打卡 +N 分"恢复可点）
+  updateCheckinBtn();
 }
 boot();
 </script>
