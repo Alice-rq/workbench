@@ -20,6 +20,7 @@
     --gold: #c2740c; --gold-soft: #fef6e7;
     --danger: #dc2626; --success: #059669; --warn: #d97706;
     --hover: #f4f5fa; --hover-strong: #e9ebf3;
+ --input: #ffffff;
     --shadow-sm: 0 1px 2px rgba(15,23,42,.04);
     --shadow: 0 1px 3px rgba(15,23,42,.05), 0 1px 2px rgba(15,23,42,.03);
     --shadow-md: 0 4px 12px -2px rgba(15,23,42,.07), 0 2px 4px -1px rgba(15,23,42,.03);
@@ -35,6 +36,7 @@
     --gold: #fbbf24; --gold-soft: rgba(251,191,36,.12);
     --danger: #f87171; --success: #34d399; --warn: #fbbf24;
     --hover: #1a2438; --hover-strong: #243049;
+--input: #1a2438;
     --shadow-sm: 0 1px 2px rgba(0,0,0,.3);
     --shadow: 0 1px 3px rgba(0,0,0,.35);
     --shadow-md: 0 4px 12px -2px rgba(0,0,0,.4);
@@ -1166,16 +1168,36 @@
   .q-card-title { font-size: 14.5px; }
   .q-card-meta { font-size: 12px; gap: 6px; }
 
-  /* 问题行：紧凑，避免 4 列挤爆 */
+/* 删除按钮 */
+.q-issue-del-btn {
+  background: none; border: none; color: var(--danger);
+  cursor: pointer; font-size: 16px; padding: 4px;
+  display: flex; align-items: center; justify-content: center;
+}
+
+/* 桌面端：4列网格 */
+.q-issue-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 80px 86px 28px;
+  gap: 6px;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* 移动端：改为两行，解决拥挤 */
+@media (max-width: 600px) {
   .q-issue-row {
-    grid-template-columns: minmax(0,1fr) 66px 58px 26px !important;
-    gap: 4px !important;
+    grid-template-columns: 1fr 100px 28px !important;
+    grid-template-areas:
+      "text text text"
+      "level resolved delete" !important;
+    gap: 8px !important;
   }
-  .q-issue-row input,
-  .q-issue-row select {
-    font-size: 12px !important;
-    padding: 6px 8px !important;
-  }
+  .q-issue-text { grid-area: text; }
+  .q-issue-level { grid-area: level; }
+  .q-issue-resolve-toggle { grid-area: resolved; justify-self: start; }
+  .q-issue-del-btn { grid-area: delete; justify-self: end; align-self: center; }
+}
 
   /* 题目编辑器：手机全屏 */
   #question-modal.form-modal {
@@ -1193,14 +1215,6 @@
   #question-modal .form-panel-actions {
     padding: 12px 16px max(12px, env(safe-area-inset-bottom));
   }
-}
-
-/* 题目集：问题行（桌面端） */
-.q-issue-row {
-  display: grid;
-  grid-template-columns: minmax(0,1fr) 90px 80px 32px;
-  gap: 6px;
-  align-items: center;
 }
 
 /* 平板（769-1024px）：压紧一点 */
@@ -1221,6 +1235,132 @@
   grid-template-columns: 2fr 1fr 1fr;
   gap: 10px;
   margin-bottom: 12px;
+}
+/* ===== 题目集：问题清单重构样式 ===== */
+.q-issue-text,
+.q-issue-level {
+  padding: 8px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--input);
+  color: var(--text);
+  font-size: 13.5px;
+  outline: none;
+  transition: border-color .15s, box-shadow .15s;
+}
+.q-issue-text:focus,
+.q-issue-level:focus {
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+
+/* 自定义下拉框箭头 */
+.q-issue-level {
+  appearance: none;
+  -webkit-appearance: none;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' viewBox='0 0 24 24' fill='none' stroke='%2364748b' stroke-width='2' stroke-linecap='round' stroke-linejoin='round'%3E%3Cpolyline points='6 9 12 15 18 9'%3E%3C/polyline%3E%3C/svg%3E");
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  padding-right: 26px;
+  cursor: pointer;
+}
+
+/* 已解决切换按钮 */
+.q-issue-resolve-toggle {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  padding: 0 14px;
+  border-radius: 20px;
+  min-height: 36px;
+  font-size: 12.5px;
+  font-weight: 600;
+  cursor: pointer;
+  background: var(--hover);
+  color: var(--muted);
+  transition: all .2s;
+  user-select: none;
+  white-space: nowrap;
+}
+.q-issue-resolve-toggle:hover {
+  background: var(--hover-strong);
+}
+.q-issue-resolve-toggle.is-resolved {
+  background: rgba(5,150,105,.12);
+  color: var(--success);
+}
+.q-issue-resolve-toggle input {
+  display: none;
+}
+.q-issue-resolve-toggle::before {
+  content: '○';
+  font-size: 14px;
+  line-height: 1;
+}
+.q-issue-resolve-toggle.is-resolved::before {
+  content: '✓';
+}
+
+/* 删除按钮 */
+.q-issue-del-btn {
+  background: none;
+  border: none;
+  color: var(--faint);
+  cursor: pointer;
+  font-size: 18px;
+  width: 32px;
+  height: 32px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  transition: all .15s;
+}
+.q-issue-del-btn:hover {
+  background: rgba(220,38,38,.1);
+  color: var(--danger);
+}
+
+/* 桌面端：4列网格 */
+.q-issue-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 90px 92px 32px;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+  padding-bottom: 10px;
+  border-bottom: 1px dashed var(--border-soft);
+}
+.q-issue-row:last-child {
+  border-bottom: none;
+  margin-bottom: 0;
+  padding-bottom: 0;
+}
+
+/* 移动端：两行布局 */
+@media (max-width: 600px) {
+  .q-issue-row {
+    grid-template-columns: 1fr 90px 32px;
+    grid-template-areas:
+      "text text text"
+      "level resolved delete";
+    gap: 8px;
+  }
+  .q-issue-text { grid-area: text; }
+  .q-issue-level { grid-area: level; }
+  .q-issue-resolve-toggle { grid-area: resolved; justify-self: start; }
+  .q-issue-del-btn { grid-area: delete; justify-self: end; }
+  .q-issue-row {
+    padding-bottom: 12px;
+  }
+}
+
+/* 已解决状态下的输入框划线 */
+.q-issue-row.resolved .q-issue-text {
+  text-decoration: line-through;
+  color: var(--faint);
+  opacity: .7;
 }
 </style>
 </head>
@@ -3819,37 +3959,60 @@ function renderQIssues() {
   const box = document.getElementById('q-issues');
   if (!box) return;
   if (!editingQIssues.length) {
-    box.innerHTML = '<div style="font-size:12px;color:var(--faint)">还没有记录问题</div>';
+    box.innerHTML = '<div style="font-size:12.5px;color:var(--faint);padding:8px 0">还没有记录问题，点下方按钮添加</div>';
     return;
   }
   box.innerHTML = editingQIssues.map((iss, i) => `
-    <div class="q-issue-row">
-      <input type="text" data-iss-idx="${i}" data-iss-k="text" value="${esc(iss.text)}" placeholder="问题描述（如：对策太笼统）" maxlength="120" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--input);font-size:13px">
-      <select data-iss-idx="${i}" data-iss-k="level" style="padding:8px 10px;border:1px solid var(--border);border-radius:7px;background:var(--input);font-size:12.5px">
+    <div class="q-issue-row ${iss.resolved ? 'resolved' : ''}">
+      <input type="text" class="q-issue-text" data-iss-idx="${i}" data-iss-k="text" value="${esc(iss.text)}" placeholder="问题描述（如：对策太笼统）" maxlength="120">
+      
+      <select class="q-issue-level" data-iss-idx="${i}" data-iss-k="level">
         <option value="high" ${iss.level === 'high' ? 'selected' : ''}>严重</option>
         <option value="mid"  ${iss.level === 'mid'  ? 'selected' : ''}>一般</option>
         <option value="low"  ${iss.level === 'low'  ? 'selected' : ''}>轻微</option>
       </select>
-      <label style="font-size:12px;display:flex;align-items:center;gap:4px;cursor:pointer;color:var(--muted)">
+
+      <label class="q-issue-resolve-toggle ${iss.resolved ? 'is-resolved' : ''}" title="${iss.resolved ? '点击取消已解决状态' : '点击标记为已解决'}">
         <input type="checkbox" data-iss-idx="${i}" data-iss-k="resolved" ${iss.resolved ? 'checked' : ''}>
-        已解决
+        <span>${iss.resolved ? '已解决' : '未解决'}</span>
       </label>
-      <button type="button" data-del-iss="${i}" style="background:none;border:none;color:var(--danger);cursor:pointer;font-size:15px">×</button>
+
+      <button type="button" class="q-issue-del-btn" data-del-iss="${i}" title="删除此问题">×</button>
     </div>
   `).join('');
+
   box.querySelectorAll('[data-iss-idx]').forEach(inp => {
     inp.addEventListener('input', () => {
       const i = Number(inp.dataset.issIdx);
       const k = inp.dataset.issK;
-      if (k === 'resolved') editingQIssues[i][k] = inp.checked;
-      else editingQIssues[i][k] = inp.value;
+      if (k !== 'resolved') editingQIssues[i][k] = inp.value;
     });
+    
     inp.addEventListener('change', () => {
       const i = Number(inp.dataset.issIdx);
       const k = inp.dataset.issK;
-      if (k === 'resolved') editingQIssues[i][k] = inp.checked;
+      if (k === 'resolved') {
+        editingQIssues[i][k] = inp.checked;
+        const label = inp.closest('.q-issue-resolve-toggle');
+        const span = label.querySelector('span');
+        const row = label.closest('.q-issue-row');
+        if (inp.checked) {
+          label.classList.add('is-resolved');
+          span.textContent = '已解决';
+          label.title = '点击取消已解决状态';
+          row.classList.add('resolved');
+        } else {
+          label.classList.remove('is-resolved');
+          span.textContent = '未解决';
+          label.title = '点击标记为已解决';
+          row.classList.remove('resolved');
+        }
+      } else if (k === 'level') {
+        editingQIssues[i][k] = inp.value;
+      }
     });
   });
+
   box.querySelectorAll('[data-del-iss]').forEach(btn => {
     btn.addEventListener('click', () => {
       editingQIssues.splice(Number(btn.dataset.delIss), 1);
