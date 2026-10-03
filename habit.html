@@ -56,11 +56,12 @@
 
   /* ---------- 顶栏 ---------- */
   .topbar { position: sticky; top: 0; z-index: 20; background: var(--bg); }
-  .topbar-inner {
+   .topbar-inner {
     max-width: var(--content-max); margin: 0 auto;
     padding: 16px 16px 10px;
-    display: flex; align-items: center; justify-content: space-between;
+    display: flex; align-items: center; gap: 6px;
   }
+  .topbar-inner h1 { flex: 1; margin: 0; min-width: 0; }
   .topbar h1 { font-size: 20px; margin: 0; font-weight: 700; letter-spacing: .2px; }
   .topbar-actions { display: flex; align-items: center; gap: 4px; }
   .icon-btn {
@@ -190,6 +191,22 @@
     content: ''; position: absolute; bottom: 7px; left: 50%;
     transform: translateX(-50%); width: 14px; height: 3px;
     border-radius: 2px; background: var(--c);
+  }
+  .check.multi {
+    border-color: var(--c);
+    color: var(--c);
+  }
+  .check.multi .check-num {
+    font-size: 11.5px;
+    font-weight: 800;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    letter-spacing: -.4px;
+  }
+  .check.multi.done {
+    background: var(--c);
+    color: #fff;
+    border-color: var(--c);
   }
   .check:active { transform: scale(.9); }
   .check.pop { animation: pop .4s ease; }
@@ -423,6 +440,9 @@
 
 <header class="topbar">
   <div class="topbar-inner">
+    <a href="../index.html" class="icon-btn" title="返回工作台" aria-label="返回工作台" style="text-decoration:none">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H5"/><path d="M12 19l-7-7 7-7"/></svg>
+    </a>
     <h1 id="page-title">今日</h1>
     <div class="topbar-actions">
       <button class="icon-btn desk-only" data-act="new" title="新建习惯" aria-label="新建习惯">
@@ -549,6 +569,7 @@
       if (!raw) return;
       const d = JSON.parse(raw);
       db.habits = Array.isArray(d.habits) ? d.habits : [];
+      db.habits.forEach(h => { if (typeof h.timesPerDay !== 'number' || h.timesPerDay < 1) h.timesPerDay = 1; });
       db.checkins = (d.checkins && typeof d.checkins === 'object') ? d.checkins : {};
       db.settings = Object.assign(
         { theme: 'light', weekStart: 1, pauses: [], lastReview: null },
@@ -835,12 +856,25 @@
     const skip = isSkip(h.id, key);
     const lv = checkLevel(h.id, key);
     const st = currentStreak(h);
+    const target = h.timesPerDay || 1;
+    const c = getCheck(h.id, key);
+    const count = (c && c.count) || 0;
 
-    let meta = h.freq === 'weekly' ? weeklyLabel(h.days) : '每天';
+    let meta;
+    if (target > 1) {
+      meta = count + ' / ' + target + ' 次';
+      if (done) meta += ' · 完成 ✓';
+    } else {
+      meta = h.freq === 'weekly' ? weeklyLabel(h.days) : '每天';
+    }
     if (st > 0) meta += ' · 连续 ' + st + ' 天';
-    else if (h.createdAt === key) meta += ' · 今天开始';
-    if (skip) meta = '今天跳过' + (getCheck(h.id, key) && getCheck(h.id, key).reason ? ' · ' + getCheck(h.id, key).reason : '');
-    else if (lv === 'min') meta = (h.freq === 'weekly' ? weeklyLabel(h.days) : '每天') + ' · 最低完成 ✓';
+    else if (h.createdAt === key && target === 1) meta += ' · 今天开始';
+
+    if (skip) {
+      meta = '今天跳过' + (c && c.reason ? ' · ' + c.reason : '');
+    } else if (lv === 'min' && target === 1) {
+      meta = (h.freq === 'weekly' ? weeklyLabel(h.days) : '每天') + ' · 最低完成 ✓';
+    }
 
     const cBg = hexA(h.color, 0.14);
 
@@ -854,13 +888,23 @@
     html += '<div class="habit-name">' + esc(h.name) + '</div>';
     html += '<div class="habit-meta">' + esc(meta) + '</div>';
     html += '</div>';
+
     if (interactive) {
       html += '<button class="more-btn" data-act="menu" data-id="' + h.id + '" aria-label="更多操作：' + esc(h.name) + '">⋯</button>';
+
       let checkCls = 'check';
+      if (target > 1) checkCls += ' multi';
       if (done) checkCls += lv === 'min' ? ' min' : ' done';
-      if (skip) checkCls += '';
+
+      let btnInner;
+      if (target > 1 && !done && !skip) {
+        btnInner = '<span class="check-num">' + count + '/' + target + '</span>';
+      } else {
+        btnInner = SVG.check;
+      }
+
       html += '<button class="' + checkCls + '" data-act="toggle" data-id="' + h.id + '" aria-label="' +
-        (done || skip ? '取消打卡：' : '打卡：') + esc(h.name) + '">' + SVG.check + '</button>';
+        (done || skip ? '取消打卡：' : (target > 1 ? '打卡一次：' : '打卡：')) + esc(h.name) + '">' + btnInner + '</button>';
     }
     html += '</div>';
     return html;
@@ -1244,36 +1288,67 @@ function updateInstallVisibility() {
      打卡 / 撤销 / 动画
      ============================================================ */
   function toggleCheck(habitId, key) {
+    const h = db.habits.find(x => x.id === habitId);
+    if (!h) return;
+    const target = h.timesPerDay || 1;
     const id = habitId + '|' + key;
     const cur = db.checkins[id];
 
-    if (cur && cur.done && cur.level !== 'skip') {
-      // 取消打卡
-      delete db.checkins[id];
-      save();
-      render();
-      vibrate(6);
-      showToast('已取消打卡', () => {
-        db.checkins[id] = cur;
-        save(); render();
-      });
-    } else {
-      // 打上
-      const prev = cur ? JSON.parse(JSON.stringify(cur)) : null;
-      db.checkins[id] = { done: true, level: 'full', at: Date.now() };
-      save();
-      render();
-      vibrate(10);
-      // 动画 + 震动
-      const btn = document.querySelector('.check[data-id="' + habitId + '"]');
-      if (btn) { btn.classList.add('pop'); setTimeout(() => btn.classList.remove('pop'), 400); }
+    // ============ 单次习惯（原有逻辑，仅补一个 count 字段） ============
+    if (target === 1) {
+      if (cur && cur.done && cur.level !== 'skip') {
+        delete db.checkins[id];
+        save(); render(); vibrate(6);
+        showToast('已取消打卡', () => {
+          db.checkins[id] = cur;
+          save(); render();
+        });
+      } else {
+        const prev = cur ? JSON.parse(JSON.stringify(cur)) : null;
+        db.checkins[id] = { done: true, count: 1, level: 'full', at: Date.now() };
+        save(); render(); vibrate(10);
+        const btn = document.querySelector('.check[data-id="' + habitId + '"]');
+        if (btn) { btn.classList.add('pop'); setTimeout(() => btn.classList.remove('pop'), 400); }
+        showToast('已打卡', () => {
+          if (prev) db.checkins[id] = prev;
+          else delete db.checkins[id];
+          save(); render();
+        });
+      }
+      return;
+    }
 
-      showToast('已打卡', () => {
+    // ============ 多次习惯：点一次加一次 ============
+    const curCount = (cur && cur.count) || 0;
+    const prev = cur ? JSON.parse(JSON.stringify(cur)) : null;
+
+    if (curCount >= target) {
+      showToast('今天已完成 ' + target + ' 次 ✅', null);
+      return;
+    }
+
+    const nextCount = curCount + 1;
+    const nextDone = nextCount >= target;
+    db.checkins[id] = Object.assign({}, cur || {}, {
+      count: nextCount,
+      done: nextDone,
+      level: 'full',
+      at: Date.now()
+    });
+    save(); render();
+    vibrate(nextDone ? 15 : 8);
+
+    const btn = document.querySelector('.check[data-id="' + habitId + '"]');
+    if (btn) { btn.classList.add('pop'); setTimeout(() => btn.classList.remove('pop'), 400); }
+
+    showToast(
+      nextDone ? '✅ 今天完成 ' + target + ' 次' : '已记 ' + nextCount + ' / ' + target + ' 次',
+      () => {
         if (prev) db.checkins[id] = prev;
         else delete db.checkins[id];
         save(); render();
-      });
-    }
+      }
+    );
   }
 
   function setCheckLevel(habitId, key, level, extra) {
@@ -1322,7 +1397,12 @@ function updateInstallVisibility() {
     html += '<button class="menu-item" data-act="menu-min" data-id="' + h.id + '">' + SVG.min + '<span>最低完成</span>' + (done && lv === 'min' ? '<span class="check-mark">✓</span>' : '') + '</button>';
     html += '<button class="menu-item" data-act="menu-skip" data-id="' + h.id + '">' + SVG.skip + '<span>今天跳过</span>' + (skip ? '<span class="check-mark">✓</span>' : '') + '</button>';
     html += '<button class="menu-item" data-act="menu-note" data-id="' + h.id + '">' + SVG.note + '<span>' + (c && c.note ? '编辑备注' : '添加备注') + '</span></button>';
-    if (done || skip) {
+    const target2 = h.timesPerDay || 1;
+    const curCount = (c && c.count) || 0;
+    if (target2 > 1 && curCount > 0 && !skip) {
+      html += '<button class="menu-item" data-act="menu-minus" data-id="' + h.id + '">' + SVG.min + '<span>减 1 次（当前 ' + curCount + '/' + target2 + '）</span></button>';
+    }
+    if (done || skip || curCount > 0) {
       html += '<button class="menu-item" data-act="menu-clear" data-id="' + h.id + '">' + SVG.undo + '<span>清除今天记录</span></button>';
     }
     html += '<button class="menu-item" data-act="menu-edit" data-id="' + h.id + '">' + SVG.edit + '<span>编辑习惯</span></button>';
@@ -1381,8 +1461,8 @@ function updateInstallVisibility() {
     ui.editing = habit || null;
     const isEdit = !!habit;
     const f = habit
-      ? { name: habit.name, icon: habit.icon, color: habit.color, freq: habit.freq, days: (habit.days || []).slice(), remind: habit.remind || '' }
-      : { name: '', icon: '🎯', color: COLORS[0], freq: 'daily', days: [1,2,3,4,5,6,0], remind: '' };
+      ? { name: habit.name, icon: habit.icon, color: habit.color, freq: habit.freq, days: (habit.days || []).slice(), remind: habit.remind || '', times: habit.timesPerDay || 1 }
+      : { name: '', icon: '🎯', color: COLORS[0], freq: 'daily', days: [1,2,3,4,5,6,0], remind: '', times: 1 };
     ui.form = f;
 
     $('#modal-root').innerHTML =
@@ -1395,14 +1475,22 @@ function updateInstallVisibility() {
       '<div class="field"><label>颜色</label><div class="color-picker" id="h-colors">' +
         COLORS.map(c => '<button type="button" data-color="' + c + '" style="background:' + c + '" class="' + (c === f.color ? 'active' : '') + '" aria-label="颜色 ' + c + '"></button>').join('') +
       '</div></div>' +
-      '<div class="field"><label>频率</label>' +
+       '<div class="field"><label>频率</label>' +
       '<div class="seg" id="h-freq" style="display:inline-flex">' +
       '<button type="button" data-freq="daily" class="' + (f.freq === 'daily' ? 'active' : '') + '">每天</button>' +
       '<button type="button" data-freq="weekly" class="' + (f.freq === 'weekly' ? 'active' : '') + '">每周指定</button>' +
       '</div>' +
       '<div class="weekdays" id="h-days" style="' + (f.freq === 'weekly' ? '' : 'display:none') + '">' +
         WEEK_ORDER.map(d => '<button type="button" data-day="' + d + '" class="' + (f.days.indexOf(d) !== -1 ? 'active' : '') + '">' + WEEK_SHORT[d] + '</button>').join('') +
-      '</div></div>' +
+      '</div>' +
+      '</div>' +
+      '<div class="field"><label>每天次数</label>' +
+      '<div class="seg" id="h-times-seg" style="display:inline-flex;flex-wrap:wrap">' +
+      [1,2,3,5,8].map(n => '<button type="button" data-times="' + n + '" class="' + (f.times === n ? 'active' : '') + '">' + n + ' 次</button>').join('') +
+      '</div>' +
+      '<input type="number" id="h-times" min="1" max="30" value="' + f.times + '" style="width:110px;margin-top:8px;padding:10px 12px;font-size:15px;border:1px solid var(--border);border-radius:10px;background:var(--bg);color:var(--text);outline:none;font-family:inherit">' +
+      '<div style="font-size:11.5px;color:var(--text3);margin-top:4px">喝水、起来走走这类可以填 5-10 次</div>' +
+      '</div>' +
       '<div class="field"><label>提醒时间（可选）</label>' +
       '<input type="time" id="h-remind" value="' + (f.remind || '') + '"></div>' +
       '<div class="modal-actions">' +
@@ -1427,12 +1515,13 @@ function updateInstallVisibility() {
     if (!name) { alert('请输入习惯名称'); return; }
     if (f.freq === 'weekly' && !f.days.length) { alert('请至少选择一天'); return; }
     f.remind = ($('#h-remind') && $('#h-remind').value) ? $('#h-remind').value.trim() : '';
+    f.times = Math.max(1, Math.min(30, parseInt(($('#h-times') && $('#h-times').value) || '1', 10) || 1));
 
     if (ui.editing) {
       const h = db.habits.find(x => x.id === ui.editing.id);
-      if (h) { h.name = name; h.icon = f.icon; h.color = f.color; h.freq = f.freq; h.days = f.days.slice(); h.remind = f.remind || null; }
+      if (h) { h.name = name; h.icon = f.icon; h.color = f.color; h.freq = f.freq; h.days = f.days.slice(); h.remind = f.remind || null; h.timesPerDay = f.times; }
     } else {
-      db.habits.push({ id: uid(), name: name, icon: f.icon, color: f.color, freq: f.freq, days: f.days.slice(), remind: f.remind || null, createdAt: todayKey(), archived: false });
+      db.habits.push({ id: uid(), name: name, icon: f.icon, color: f.color, freq: f.freq, days: f.days.slice(), remind: f.remind || null, timesPerDay: f.times, createdAt: todayKey(), archived: false });
     }
     save(); closeModal(); render();
   }
@@ -1649,6 +1738,26 @@ function openIOSInstallHelp() {
       // 菜单里的操作
       const full = e.target.closest('[data-act="menu-full"]');
       if (full) { setCheckLevel(full.dataset.id, todayKey(), 'full'); closeModal(); return; }
+      const minusBtn = e.target.closest('[data-act="menu-minus"]');
+      if (minusBtn) {
+        const id = minusBtn.dataset.id;
+        const key = id + '|' + todayKey();
+        const h0 = db.habits.find(x => x.id === id);
+        if (!h0) return;
+        const tgt = h0.timesPerDay || 1;
+        const cc = db.checkins[key];
+        const prevRec = cc ? JSON.parse(JSON.stringify(cc)) : null;
+        const nextNum = Math.max(0, ((cc && cc.count) || 0) - 1);
+        if (nextNum === 0) delete db.checkins[key];
+        else db.checkins[key] = Object.assign({}, cc, { count: nextNum, done: nextNum >= tgt });
+        save(); render(); closeModal();
+        showToast('已减 1 次', () => {
+          if (prevRec) db.checkins[key] = prevRec;
+          else delete db.checkins[key];
+          save(); render();
+        });
+        return;
+      }
       const minBtn = e.target.closest('[data-act="menu-min"]');
       if (minBtn) { setCheckLevel(minBtn.dataset.id, todayKey(), 'min'); closeModal(); return; }
       const skipBtn = e.target.closest('[data-act="menu-skip"]');
@@ -1750,6 +1859,14 @@ function openIOSInstallHelp() {
         $('#h-days').style.display = ui.form.freq === 'weekly' ? 'flex' : 'none';
         return;
       }
+      const timeBtn = e.target.closest('#h-times-seg button');
+      if (timeBtn) {
+        const v = Number(timeBtn.dataset.times) || 1;
+        ui.form.times = v;
+        $$('#h-times-seg button').forEach(b => b.classList.toggle('active', b === timeBtn));
+        const inp = $('#h-times'); if (inp) inp.value = v;
+        return;
+      }
       const dayBtn = e.target.closest('#h-days button');
       if (dayBtn) {
         const d = Number(dayBtn.dataset.day);
@@ -1772,6 +1889,16 @@ function openIOSInstallHelp() {
     });
 
     // 键盘
+    document.addEventListener('input', e => {
+      if (e.target && e.target.id === 'h-times') {
+        let v = parseInt(e.target.value, 10) || 1;
+        v = Math.max(1, Math.min(30, v));
+        ui.form.times = v;
+        $$('#h-times-seg button').forEach(b => {
+          b.classList.toggle('active', Number(b.dataset.times) === v);
+        });
+      }
+    });
     document.addEventListener('keydown', e => {
       if (e.key === 'Escape') { closeModal(); hideToast(); return; }
       const inModal = $('#modal-root').innerHTML !== '';
