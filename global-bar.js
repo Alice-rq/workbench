@@ -408,9 +408,10 @@
     sync();
     renderClock();
 
-    setInterval(function () {
+        setInterval(function () {
       renderClock();
       renderPomo();
+      renderPick();
       checkFinish();
     }, 300);
 
@@ -433,7 +434,7 @@
   }
 
   /* ---------- 对外 API ---------- */
-  window.GlobalBar = {
+   window.GlobalBar = {
     start: start,
     pause: pause,
     resume: resume,
@@ -443,6 +444,7 @@
     getRemaining: getRemaining,
     getPomo: getPomo,
     toast: toast,
-    refreshAccent: function () { injectStyle(); }
+    refreshAccent: function () { injectStyle(); },
+    refreshPick: function () { renderPick(); }
   };
 })();
