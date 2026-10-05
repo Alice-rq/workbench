@@ -21,6 +21,59 @@
   } catch (e) {}
 </script>
 <style>
+/* ===== 回收站 v2 ===== */
+.trash-filter-bar {
+  display: flex;
+  gap: 4px;
+  padding: 4px 4px 8px;
+}
+.trash-filter-chip {
+  font-size: 11.5px;
+  padding: 4px 12px;
+  border-radius: 12px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  color: var(--text-2);
+  cursor: pointer;
+  transition: all .15s;
+  user-select: none;
+}
+.trash-filter-chip:hover { background: var(--hover); color: var(--text); }
+.trash-filter-chip.active {
+  background: var(--accent-soft);
+  color: var(--accent);
+  border-color: var(--accent);
+}
+.trash-date-group { margin-bottom: 12px; }
+.trash-date-label {
+  font-size: 10.5px;
+  font-weight: 700;
+  color: var(--text-3);
+  letter-spacing: .5px;
+  padding: 6px 4px 4px;
+  text-transform: uppercase;
+}
+.trash-preview-full {
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  padding: 14px 16px;
+  font-size: 13.5px;
+  line-height: 1.85;
+  white-space: pre-wrap;
+  word-break: break-word;
+  max-height: 50vh;
+  overflow-y: auto;
+  color: var(--text);
+}
+.trash-content {
+  cursor: pointer;
+  transition: background .15s;
+}
+.trash-content:hover {
+  background: var(--hover);
+  border-radius: 4px;
+}
   *{box-sizing:border-box;margin:0;padding:0}
    :root{
 --ui-scale: 1;
@@ -758,48 +811,7 @@
     .resizer { display: none; }
   }
   
-/* ============ 删稿回收站 ============ */
-  .trash-item {
-    padding: 10px;
-    border-radius: 8px;
-    background: var(--panel-2);
-    border: 1px solid var(--border);
-    margin-bottom: 6px;
-  }
-  .trash-meta {
-    display: flex;
-    justify-content: space-between;
-    font-size: 11px;
-    color: var(--text-3);
-    margin-bottom: 5px;
-    gap: 6px;
-  }
-  .trash-source {
-    flex: 1;
-    overflow: hidden;
-    text-overflow: ellipsis;
-    white-space: nowrap;
-    min-width: 0;
-  }
-  .trash-time {
-    flex-shrink: 0;
-  }
-  .trash-content {
-    font-size: 12.5px;
-    line-height: 1.7;
-    color: var(--text);
-    white-space: pre-wrap;
-    word-break: break-word;
-    max-height: 96px;
-    overflow: hidden;
-    margin-bottom: 8px;
-    padding: 4px 0;
-  }
-  .trash-actions {
-    display: flex;
-    gap: 4px;
-    justify-content: flex-end;
-  }
+
   /* ============ 界面美化 ============ */
   body {
     font-family: -apple-system, BlinkMacSystemFont, "SF Pro SC", "PingFang SC",
@@ -2086,6 +2098,7 @@ function migrate(){
     (w.chapters||[]).forEach(c=>{
       if(c.summary===undefined)c.summary='';
       if(c.wordGoal===undefined)c.wordGoal=0;
+if (c.lastSnapshot === undefined) c.lastSnapshot = c.content || '';
       if(c.revisionBase===undefined)c.revisionBase=null;
     });
   });
@@ -2172,6 +2185,7 @@ function initSample(){
     snapshots:[],
     createdAt:Date.now(),
   }];
+flushCaptureDeletions();
   state.currentWorkId=wid;
   state.currentChapterId=state.works[0].chapters[0].id;
   state.characters=[];
@@ -2331,7 +2345,110 @@ function detectCharAppearances(chapter, work){
   chapter.appearedChars = Object.keys(freq);
   chapter.charFrequency = freq;
 }
+function openTrashPreview(id) {
+  const t = state.trash.find(x => x.id === id);
+  if (!t) return;
+  openModal(`
+    <div class="modal-header">
+      <h3>删除记录</h3>
+      <button class="icon-btn" data-close style="opacity:1">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="trash-meta" style="margin-bottom:12px;display:flex;justify-content:space-between">
+        <span>来自：${esc(t.workTitle)} · ${esc(t.chapterTitle)}</span>
+        <span style="color:var(--text-3)">${fmtTime(t.time)}</span>
+      </div>
+      <div class="trash-preview-full">${esc(t.content)}</div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn danger" id="tPrevDelete">删除</button>
+      <button class="btn" id="tPrevCopy">复制</button>
+      <button class="btn" id="tPrevRestore">回原章节</button>
+      <button class="btn primary" id="tPrevInsert">插到当前章节</button>
+    </div>
+  `, root => {
+    root.querySelector('#tPrevDelete').onclick = () => {
+      state.trash = state.trash.filter(x => x.id !== id);
+      saveNow(); closeModal(); renderTab();
+    };
+    root.querySelector('#tPrevCopy').onclick = () => {
+      const fallback = () => {
+        const ta = document.createElement('textarea');
+        ta.value = t.content;
+        ta.style.position = 'fixed'; ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        try { document.execCommand('copy'); toast('已复制'); }
+        catch (_) { toast('复制失败'); }
+        document.body.removeChild(ta);
+      };
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        navigator.clipboard.writeText(t.content).then(() => toast('已复制')).catch(fallback);
+      } else fallback();
+    };
+    root.querySelector('#tPrevRestore').onclick = () => {
+      closeModal();
+      restoreToOriginalChapter(t);
+    };
+    root.querySelector('#tPrevInsert').onclick = () => {
+      closeModal();
+      insertTrashToCurrent(t);
+    };
+  }, { wide: true });
+}
 
+function restoreToOriginalChapter(t) {
+  const work = state.works.find(w => w.id === t.workId);
+  if (!work) { toast('原作品已被删除'); return; }
+  const ch = work.chapters.find(c => c.id === t.chapterId);
+  if (!ch) { toast('原章节已被删除'); return; }
+// 先同步编辑器里的内容到当前章节，防止未保存的输入丢失
+const curCh = getChapter();
+if (curCh) {
+  curCh.content = $('#editor').value;
+  curCh.updatedAt = Date.now();
+}
+flushCaptureDeletions();
+  // 先捕获当前章节可能的删除
+  flushCaptureDeletions();
+
+  state.currentWorkId = work.id;
+  state.currentChapterId = ch.id;
+  loadChapterIntoEditor();
+
+  const ed = $('#editor');
+  const suffix = ed.value.endsWith('\n') ? '' : '\n\n';
+  const newContent = ed.value + suffix + t.content;
+  ed.value = newContent;
+  ch.content = newContent;
+  ch.updatedAt = Date.now();
+  ed.dispatchEvent(new Event('input'));
+  ed.scrollTop = ed.scrollHeight;
+
+  saveNow(); render();
+  toast('已回原章节，追加到末尾');
+}
+
+function insertTrashToCurrent(t) {
+  const ch = getChapter();
+  if (!ch) { toast('请先选择章节'); return; }
+  const ed = $('#editor');
+  const start = ed.selectionStart || 0;
+  const val = ed.value;
+  const before = val.slice(0, start);
+  const after = val.slice(start);
+  const prefix = before && !before.endsWith('\n') ? '\n\n' : '';
+  const suffix = after && !after.startsWith('\n') ? '\n\n' : '';
+  const newVal = before + prefix + t.content + suffix + after;
+  ed.value = newVal;
+  ch.content = newVal;
+  ch.updatedAt = Date.now();
+  const pos = before.length + prefix.length + t.content.length + suffix.length;
+  ed.setSelectionRange(pos, pos);
+  ed.dispatchEvent(new Event('input'));
+  saveNow(); render();
+  toast('已插入当前章节');
+}
 function openAppearanceStats(){
   const w = getWork();
   if (!w) return;
@@ -2912,7 +3029,6 @@ function loadChapterIntoEditor(){
   $('#chapterSummary').value=ch?.summary||'';
   updateEditorMeta();
   if(prefs.preview)renderPreview();
-  ensureSnapshot(ch);
   checkWriterAlerts();
 }
 
@@ -3418,10 +3534,10 @@ function openHelpModal(){
         <h4>🗑 删稿回收站</h4>
         <ul>
           <li>左侧「回收站」标签</li>
-          <li>你删掉的<b>连续 15 字以上</b>的内容，会自动进这里</li>
+          <li>你删掉的<b>整段（≥30 字，且不是编辑）</b>的内容，会自动进这里</li>
           <li>不需要手动开启，后台默默收集</li>
           <li>支持「复制」「插回当前章节」「永久删除」</li>
-          <li>最多保留 500 条，超出自动删最旧的</li>
+          <li>保留最近 30 天，最多 300 条</li>
           <li>适合"先扩写再删"的写作流程，删了还能捡回来</li>
         </ul>
       </div>
@@ -4847,6 +4963,19 @@ $('#editor').addEventListener('input',e=>{
 $('#editor').addEventListener('click',centerCursor);
 $('#editor').addEventListener('keyup',centerCursor);
 
+// 段落结束（回车）立刻捕获
+$('#editor').addEventListener('keydown', e => {
+  if (e.key === 'Enter' && !e.shiftKey) {
+    clearTimeout(deletionTimer);
+    const ch = getChapter();
+    if (ch) captureDeletionsForChapter(ch);
+  }
+});
+
+// 失焦立刻捕获
+$('#editor').addEventListener('blur', () => {
+  flushCaptureDeletions();
+});
 $('#btnStats').onclick=openStatsModal;
 $('#btnSearch').onclick=openSearchModal;
 $('#btnReplace').onclick=openReplaceModal;
@@ -4959,7 +5088,12 @@ $('#importFile').onchange=e=>{
 document.addEventListener('click',e=>{
   if(e.target.closest('[data-close]')){closeModal();return;}
   if(e.target.id==='modalOverlay'){closeModal();return;}
-
+const trashScopeChip = e.target.closest('[data-trash-scope]');
+if (trashScopeChip) {
+  trashFilter.scope = trashScopeChip.dataset.trashScope;
+  renderTab();
+  return;
+}
   const ideaStatus = e.target.closest('[data-idea-status]');
   if (ideaStatus) {
     ideaFilter.status = ideaStatus.dataset.ideaStatus;
@@ -5007,6 +5141,16 @@ document.addEventListener('click',e=>{
   const action=btn.dataset.action;
 
   switch(action){
+case 'trash-preview': {
+  const id = btn.dataset.id;
+  openTrashPreview(id);
+  break;
+}
+case 'trash-restore': {
+  const t = state.trash.find(x => x.id === btn.dataset.id);
+  if (t) restoreToOriginalChapter(t);
+  break;
+}
     case 'select-work':{
       const block=btn.closest('[data-work]');
       const wid=block.dataset.work;
@@ -5024,7 +5168,7 @@ document.addEventListener('click',e=>{
       openChapterTemplatePicker(t=>{
         const ch={id:uid(),title:`第${work.chapters.length+1}章`,content:t.content,summary:'',updatedAt:Date.now()};
         work.chapters.push(ch);
-        _chapterSnapshots.set(ch.id, ch.content || '');
+        ch.lastSnapshot = ch.content || '';
         state.currentWorkId=work.id;
         state.currentChapterId=ch.id;
         loadChapterIntoEditor();saveNow();render();
@@ -5032,13 +5176,15 @@ document.addEventListener('click',e=>{
       });
       break;
     }
-    case 'select-chapter':{
-      const id=btn.closest('[data-chapter]').dataset.chapter;
-      if(id===state.currentChapterId)return;
-      state.currentChapterId=id;
-      loadChapterIntoEditor();saveNow();render();
-      break;
-    }
+  case 'select-chapter':{
+  const id=btn.closest('[data-chapter]').dataset.chapter;
+  if(id===state.currentChapterId)return;
+  // 切章节前捕获旧章节
+  flushCaptureDeletions();
+  state.currentChapterId=id;
+  loadChapterIntoEditor();saveNow();render();
+  break;
+}
     case 'chapter-menu':{
       e.stopPropagation();
       const id=btn.closest('[data-chapter]').dataset.chapter;
@@ -5093,7 +5239,7 @@ document.addEventListener('click',e=>{
           const copy={id:uid(),title:ch.title+' 副本',content:ch.content,summary:ch.summary||'',updatedAt:Date.now()};
           const i=work.chapters.indexOf(ch);
           work.chapters.splice(i+1,0,copy);
-          _chapterSnapshots.set(copy.id, copy.content || '');
+          copy.lastSnapshot = copy.content || '';
           saveNow();closeModal();render();
         };
         root.querySelector('#mDelete').onclick=()=>{
@@ -5160,6 +5306,7 @@ document.addEventListener('click',e=>{
           chapters:[{id:uid(),title:'第一章',content:'',summary:'',updatedAt:Date.now()}],
           snapshots:[],createdAt:Date.now(),
         });
+flushCaptureDeletions();
         state.currentWorkId=wid;
         state.currentChapterId=state.works[state.works.length-1].chapters[0].id;
         loadChapterIntoEditor();saveNow();render();
@@ -5768,124 +5915,90 @@ document.querySelectorAll('.settings-preset button').forEach(btn => {
   });
 });
 
-/* ============================================================
-   26. 删稿回收站
-============================================================ */
 
-/* 内存中的章节基线快照，不持久化，只用于对比 */
-const _chapterSnapshots = new Map();
+let trashFilter = { scope: 'all', search: '' };
 
-/* 删除检测：逐行 LCS diff，抽出被删掉的行块 */
-function detectDeletions(oldText, newText) {
-  if (!oldText || oldText === newText) return [];
-  const oldLines = oldText.split('\n');
-  const newLines = newText.split('\n');
-  const ops = lcsDiff(oldLines, newLines);
-  const deletions = [];
-  let current = null;
-  const flush = () => {
-    if (current !== null) {
-      const trimmed = current.trim();
-      if (trimmed.length >= 15) deletions.push(trimmed);
-      current = null;
-    }
-  };
-  for (const op of ops) {
-    if (op.type === 'del') {
-      if (current === null) current = op.value;
-      else current += '\n' + op.value;
-    } else {
-      flush();
-    }
-  }
-  flush();
-  return deletions;
-}
-
-/* 将删除块写入回收站 */
-function captureDeletionsForChapter(ch) {
-  if (!ch) return;
-  const work = state.works.find(w => w.chapters.includes(ch));
-  if (!work) return;
-  const last = _chapterSnapshots.get(ch.id) || '';
-  const curr = ch.content || '';
-  if (last === curr) return;
-
-  const deletions = detectDeletions(last, curr);
-  if (deletions.length) {
-    deletions.forEach(text => {
-      state.trash.unshift({
-        id: uid(),
-        content: text,
-        workId: work.id,
-        workTitle: work.title,
-        chapterId: ch.id,
-        chapterTitle: ch.title || '未命名',
-        time: Date.now(),
-      });
-    });
-    if (state.trash.length > 500) state.trash = state.trash.slice(0, 500);
-    saveNow();
-    if (prefs.tab === 'trash') renderTab();
-  }
-  _chapterSnapshots.set(ch.id, curr);
-}
-
-/* 从正文里提取 {{点子名}} 并自动关联到当前章节 */
-function trackIdeaRefs(ch){
-  if (!ch) return;
-  const content = ch.content || '';
-  const re = /\{\{(.+?)\}\}/g;
-  let m;
-  const refs = new Set();
-  while ((m = re.exec(content))) {
-    const name = m[1].trim();
-    if (name) refs.add(name);
-  }
-  let changed = false;
-  refs.forEach(name => {
-    const idea = (state.ideas || []).find(i => i.title === name);
-    if (!idea) return;
-    if (idea.scope !== 'chapter') return; // 只在"本章"模式下自动关联
-    if (!idea.usedIn) idea.usedIn = [];
-    if (!idea.usedIn.includes(ch.id)) {
-      idea.usedIn.push(ch.id);
-      changed = true;
-    }
-  });
-  if (changed) {
-    saveNow();
-    if (prefs.tab === 'ideas') renderTab();
-    if (prefs.tab !== 'trash') scheduleRight();
-  }
-}
-
-let deletionTimer = null;
-function scheduleCaptureDeletions(ch) {
-  clearTimeout(deletionTimer);
-  deletionTimer = setTimeout(() => captureDeletionsForChapter(ch), 700);
-}/* 回收站列表渲染 */
 function trashHTML() {
-  const list = state.trash || [];
+  cleanupTrash();
+
+  let list = state.trash || [];
+
+  // 范围筛选
+  if (trashFilter.scope === 'work') {
+    list = list.filter(t => t.workId === state.currentWorkId);
+  } else if (trashFilter.scope === 'chapter') {
+    list = list.filter(t => t.chapterId === state.currentChapterId);
+  }
+
+  // 搜索
+  if (trashFilter.search) {
+    const q = trashFilter.search.toLowerCase();
+    list = list.filter(t =>
+      (t.content || '').toLowerCase().includes(q) ||
+      (t.chapterTitle || '').toLowerCase().includes(q) ||
+      (t.workTitle || '').toLowerCase().includes(q)
+    );
+  }
+
+  // 按日期分组
+  const groups = {};
+  const order = [];
+  const now = new Date();
+  const todayKey = dateKey(now);
+  const yesterdayDate = new Date(now);
+  yesterdayDate.setDate(now.getDate() - 1);
+  const yesterdayKey = dateKey(yesterdayDate);
+
+  list.forEach(t => {
+    const d = new Date(t.time);
+    const k = dateKey(d);
+    let label;
+    if (k === todayKey) label = '今天';
+    else if (k === yesterdayKey) label = '昨天';
+    else {
+      const daysAgo = Math.floor((now - d) / 86400000);
+      if (daysAgo < 7) label = daysAgo + ' 天前';
+      else label = `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    }
+    if (!groups[label]) { groups[label] = []; order.push(label); }
+    groups[label].push(t);
+  });
+
   return `
     <div class="list-header">
-      <span>删稿回收站 · ${list.length}</span>
-      ${list.length ? '<button class="icon-btn" data-action="clear-trash" title="清空回收站">🗑</button>' : ''}
+      <span>回收站 · ${list.length}</span>
+      ${state.trash.length ? '<button class="icon-btn" data-action="clear-trash" title="清空回收站">🗑</button>' : ''}
+    </div>
+    <div class="trash-filter-bar">
+      <span class="trash-filter-chip ${trashFilter.scope === 'all' ? 'active' : ''}" data-trash-scope="all">全部</span>
+      <span class="trash-filter-chip ${trashFilter.scope === 'work' ? 'active' : ''}" data-trash-scope="work">当前作品</span>
+      <span class="trash-filter-chip ${trashFilter.scope === 'chapter' ? 'active' : ''}" data-trash-scope="chapter">当前章节</span>
+    </div>
+    <div style="padding:0 4px 8px">
+      <input class="modal-input" id="trashSearchInput" placeholder="搜索删除的内容…" value="${esc(trashFilter.search)}" style="font-size:12.5px;padding:7px 10px;width:100%">
     </div>
     ${list.length === 0
-      ? '<div class="empty-state">还没有删除记录<br>你删掉的段落（≥15 字）会自动进这里</div>'
-      : list.map(t => `
-        <div class="trash-item">
-          <div class="trash-meta">
-            <span class="trash-source" title="${esc(t.workTitle)} · ${esc(t.chapterTitle)}">${esc(t.workTitle)} · ${esc(t.chapterTitle)}</span>
-            <span class="trash-time">${fmtTime(t.time)}</span>
-          </div>
-          <div class="trash-content">${esc(t.content.length > 160 ? t.content.slice(0, 160) + '…' : t.content)}</div>
-          <div class="trash-actions">
-            <button class="btn small" data-action="trash-copy" data-id="${t.id}">复制</button>
-            <button class="btn small" data-action="trash-insert" data-id="${t.id}">插回</button>
-            <button class="icon-btn" data-action="trash-delete" data-id="${t.id}" style="opacity:1" title="永久删除">✕</button>
-          </div>
+      ? `<div class="empty-state">${state.trash.length === 0
+          ? '还没有删除记录<br>整段删除（≥30 字）且非编辑操作才会进这里'
+          : '没有匹配的记录'}</div>`
+      : order.map(label => `
+        <div class="trash-date-group">
+          <div class="trash-date-label">${esc(label)} · ${groups[label].length}</div>
+          ${groups[label].map(t => `
+            <div class="trash-item" data-trash-id="${t.id}">
+              <div class="trash-meta">
+                <span class="trash-source" title="${esc(t.workTitle)} · ${esc(t.chapterTitle)}">${esc(t.workTitle)} · ${esc(t.chapterTitle)}</span>
+                <span class="trash-time">${fmtTime(t.time)}</span>
+              </div>
+              <div class="trash-content" data-action="trash-preview" data-id="${t.id}">${esc(t.content.length > 100 ? t.content.slice(0, 100) + '…' : t.content)}</div>
+              <div class="trash-actions">
+                <button class="btn small" data-action="trash-copy" data-id="${t.id}">复制</button>
+                <button class="btn small" data-action="trash-insert" data-id="${t.id}">插到当前</button>
+                <button class="btn small" data-action="trash-restore" data-id="${t.id}">回原章节</button>
+                <button class="icon-btn" data-action="trash-delete" data-id="${t.id}" style="opacity:1" title="永久删除">✕</button>
+              </div>
+            </div>
+          `).join('')}
         </div>
       `).join('')
     }
@@ -6082,13 +6195,133 @@ function openWarningEditor(warn){
     });
   });
 }
-/* 编辑器输入时同步基线 */
-function ensureSnapshot(ch) {
-  if (!ch) return;
-  if (!_chapterSnapshots.has(ch.id)) {
-    _chapterSnapshots.set(ch.id, ch.content || '');
+/* ============================================================
+   26. 删稿回收站 v3
+============================================================ */
+
+function getTrashConfig() {
+  return {
+    minChars: prefs.trashMinChars || 30,
+    delayMs: (prefs.trashDelaySec || 3) * 1000,
+    keepDays: prefs.trashKeepDays || 30,
+    maxItems: 300,
+    similarityThreshold: 0.6,
+  };
+}
+
+function textSimilarity(a, b) {
+  if (!a || !b) return 0;
+  const aMap = new Map();
+  const bMap = new Map();
+  for (const c of a) aMap.set(c, (aMap.get(c) || 0) + 1);
+  for (const c of b) bMap.set(c, (bMap.get(c) || 0) + 1);
+  let common = 0;
+  for (const [c, count] of aMap) {
+    common += Math.min(count, bMap.get(c) || 0);
+  }
+  return 2 * common / (a.length + b.length);
+}
+
+function detectDeletions(oldText, newText) {
+  if (!oldText || oldText === newText) return [];
+  if (!oldText.length) return [];
+
+  const { minChars, similarityThreshold } = getTrashConfig();
+
+  const oldParas = oldText.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+  const newParas = newText.split(/\n{2,}/).map(p => p.trim()).filter(Boolean);
+  if (!oldParas.length) return [];
+
+  const newSet = new Set(newParas);
+
+  const lost = [];
+  let group = null;
+  for (const oldP of oldParas) {
+    if (newSet.has(oldP)) {
+      if (group) { lost.push(group); group = null; }
+    } else {
+      group = group === null ? oldP : group + '\n\n' + oldP;
+    }
+  }
+  if (group) lost.push(group);
+
+  const realDeletions = [];
+  for (const block of lost) {
+    const trimmed = block.trim();
+    if (trimmed.length < minChars) continue;
+    let isEdit = false;
+    for (const newP of newParas) {
+      if (textSimilarity(trimmed, newP) > similarityThreshold) {
+        isEdit = true;
+        break;
+      }
+    }
+    if (isEdit) continue;
+    realDeletions.push(trimmed);
+  }
+  return realDeletions;
+}
+
+function cleanupTrash() {
+  const { keepDays, maxItems } = getTrashConfig();
+  const cutoff = Date.now() - keepDays * 24 * 3600 * 1000;
+  let list = state.trash || [];
+  const before = list.length;
+  list = list.filter(t => t.time >= cutoff);
+  if (list.length > maxItems) list = list.slice(0, maxItems);
+  if (list.length !== before) {
+    state.trash = list;
+    saveNow();
   }
 }
+
+function captureDeletionsForChapter(ch) {
+  if (!ch) return;
+  const work = state.works.find(w => w.chapters.includes(ch));
+  if (!work) return;
+
+  const oldText = ch.lastSnapshot || '';
+  const newText = ch.content || '';
+  if (oldText === newText) {
+    if (ch.lastSnapshot === undefined) ch.lastSnapshot = newText;
+    return;
+  }
+
+  const deletions = detectDeletions(oldText, newText);
+  if (deletions.length) {
+    deletions.forEach(text => {
+      state.trash.unshift({
+        id: uid(),
+        content: text,
+        workId: work.id,
+        workTitle: work.title,
+        chapterId: ch.id,
+        chapterTitle: ch.title || '未命名',
+        time: Date.now(),
+      });
+    });
+    cleanupTrash();
+    saveNow();
+    if (prefs.tab === 'trash') renderTab();
+  }
+  ch.lastSnapshot = newText;
+  saveNow();
+}
+
+let deletionTimer = null;
+
+function scheduleCaptureDeletions(ch) {
+  const { delayMs } = getTrashConfig();
+  clearTimeout(deletionTimer);
+  deletionTimer = setTimeout(() => captureDeletionsForChapter(ch), delayMs);
+}
+
+function flushCaptureDeletions() {
+  clearTimeout(deletionTimer);
+  const ch = getChapter();
+  if (ch) captureDeletionsForChapter(ch);
+}
+
 /* ============================================================
    28. 点子库
 ============================================================ */
@@ -6749,6 +6982,23 @@ applyLockdown();
     }
   }
 })();
+document.addEventListener('input', (e) => {
+  if (e.target.id === 'trashSearchInput') {
+    trashFilter.search = e.target.value;
+    const box = document.querySelector('#tabContent');
+    const scrollTop = box ? box.scrollTop : 0;
+    renderTab();
+    const newBox = document.querySelector('#tabContent');
+    if (newBox) {
+      newBox.scrollTop = scrollTop;
+      const inp = document.querySelector('#trashSearchInput');
+      if (inp) {
+        inp.focus();
+        inp.setSelectionRange(inp.value.length, inp.value.length);
+      }
+    }
+  }
+});
 /* ===== 同步状态到总工作台 ===== */
 function syncStatusToHub(){
   try {
