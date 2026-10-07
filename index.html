@@ -1177,8 +1177,9 @@
     <button class="icon-btn" id="settingsBtn" type="button" title="设置">⚙️</button>
     <button class="icon-btn" id="themeBtn" type="button" title="外观">🎨</button>
   </div>
-</header>
+  </header>
 
+<main class="wrap">
   <section class="wheel-section">
     <div class="card wheel-panel">
       <div class="panel-head">
@@ -1488,12 +1489,13 @@
       <div class="wheel-pointer"></div>
       <button class="wheel-spin-btn" id="rewardSpinBtn" type="button">抽</button>
     </div>
-    <p class="result" id="rewardWheelResult" style="margin-top:10px;text-align:center">点击「抽」看看奖励是什么</p>
+        <p class="result" id="rewardWheelResult" style="margin-top:10px;text-align:center">点击「抽」看看奖励是什么</p>
     <div class="modal-actions" style="justify-content:center">
       <button type="button" class="btn primary" id="rewardWheelAccept" disabled>收下奖励</button>
     </div>
+    </div>
   </div>
-</div>
+
 <!-- ================= 完成奖励弹窗 ================= -->
 <div class="modal" id="rewardModal">
   <div class="modal-mask" data-close></div>
@@ -1506,7 +1508,8 @@
       <div class="reward-points" id="rewardPoints"></div>
       <div class="reward-message" id="rewardMessage" style="display:none"></div>
     </div>
-    <div class="modal-actions" style="justify-content:center">
+       <div class="modal-actions" style="justify-content:center;gap:8px;flex-wrap:wrap">
+      <button type="button" class="btn" id="rewardStartTimer" style="display:none;">⏱ 开始计时</button>
       <button type="button" class="btn primary" data-close>收下奖励</button>
     </div>
   </div>
@@ -2722,6 +2725,21 @@ function showRewardModal(item, points, chosen) {
   }
 
     playRewardSound();
+  // 奖励时长倒计时按钮
+  const timerBtn = $('rewardStartTimer');
+  const mins2 = chosen && chosen.minutes ? Math.round(chosen.minutes) : 0;
+  if (mins2 > 0) {
+    timerBtn.style.display = '';
+    timerBtn.textContent = '⏱ 开始计时 ' + mins2 + ' 分钟';
+    timerBtn.onclick = () => {
+      $('rewardModal').classList.remove('is-open');
+      startGlobalPomodoro('🎁 ' + (chosen.item || '奖励'), mins2 * 60);
+      toast('奖励计时开始，' + mins2 + ' 分钟后提醒');
+    };
+  } else {
+    timerBtn.style.display = 'none';
+    timerBtn.onclick = null;
+  }
   $('rewardModal').classList.add('is-open');
 }
 
@@ -3489,6 +3507,14 @@ function resetGlobalPomodoro() {
 /* 番茄钟结束时，弹打卡确认框 */
 window.addEventListener('global-pomodoro-end', function () {
   if (currentPick && !currentPick.settled) showConfirm();
+});
+window.addEventListener('global-pomodoro-end', function () {
+  // 奖励计时结束（当前没有待打卡活动）
+  if (!currentPick || currentPick.settled) {
+    toast('⏰ 奖励时间到，该收手啦');
+    // 可选：播放一次提示音
+    try { playChime(1); } catch (e) {}
+  }
 });
 
 function showConfirm() {
