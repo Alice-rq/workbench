@@ -955,6 +955,69 @@
     .modal-card { padding: 18px; border-radius: 14px; }
     .theme-presets { grid-template-columns: repeat(3, 1fr); }
   }
+/* ===== 完成奖励弹窗 ===== */
+.reward-pop {
+  text-align: center;
+  padding: 10px 0 4px;
+}
+.reward-icon {
+  font-size: 58px;
+  line-height: 1;
+  margin-bottom: 10px;
+  animation: rewardPop .65s cubic-bezier(.2,1.6,.4,1);
+  display: inline-block;
+}
+@keyframes rewardPop {
+  0%   { transform: scale(.4) rotate(-15deg); opacity: 0; }
+  60%  { transform: scale(1.18) rotate(6deg); opacity: 1; }
+  100% { transform: scale(1) rotate(0); opacity: 1; }
+}
+.reward-title {
+  font-size: 21px;
+  font-weight: 800;
+  color: var(--strong);
+  margin-bottom: 8px;
+  letter-spacing: -.2px;
+}
+.reward-item-name {
+  font-size: 13px;
+  color: var(--muted);
+  margin-bottom: 4px;
+}
+.reward-meta {
+  font-size: 12.5px;
+  color: var(--muted);
+  margin-bottom: 10px;
+}
+.reward-points {
+  font-size: 28px;
+  font-weight: 900;
+  margin: 8px 0 4px;
+  font-variant-numeric: tabular-nums;
+}
+.reward-points.up   { color: var(--green); }
+.reward-points.down { color: var(--red); }
+.reward-points.zero { color: var(--muted); font-size: 15px; font-weight: 700; }
+.reward-message {
+  font-size: 13.5px;
+  color: var(--text);
+  line-height: 1.75;
+  padding: 12px 14px;
+  background: var(--input);
+  border-radius: 11px;
+  margin-top: 12px;
+  white-space: pre-wrap;
+  word-break: break-word;
+  text-align: left;
+  border: 1px solid var(--line);
+}
+.reward-config {
+  margin-top: 8px;
+  padding: 10px 12px;
+  border: 1px dashed var(--line);
+  border-radius: 10px;
+  background: var(--input);
+}
 </style>
 </head>
 <body>
@@ -1135,10 +1198,43 @@
         <div class="sub-list" id="act-sub-list"></div>
       </div>
     </div>
-    <label class="field">
+       <label class="field">
       <span>跳转链接（选填，抽到后自动进入）</span>
       <input id="act-url" type="text" inputmode="url" placeholder="./study.html" />
     </label>
+
+    <div class="field">
+      <span>完成奖励弹窗</span>
+      <label style="display:flex;align-items:center;gap:8px;font-size:13px;cursor:pointer;padding:4px 0;">
+        <input type="checkbox" id="act-has-reward" style="width:16px;height:16px;accent-color:var(--accent)">
+        <span>完成打卡后，弹窗显示奖励/提醒</span>
+      </label>
+      <div class="reward-config" id="act-reward-section" style="display:none">
+        <div class="field-row">
+          <label class="field" style="margin-bottom:0">
+            <span>图标</span>
+            <input id="act-reward-icon" type="text" maxlength="4" value="🎉" placeholder="🎉" />
+          </label>
+          <label class="field" style="margin-bottom:0">
+            <span>标题</span>
+            <input id="act-reward-title" type="text" maxlength="20" value="完成啦！" placeholder="完成啦！" />
+          </label>
+        </div>
+        <label class="field" style="margin:10px 0 0">
+          <span>奖励内容</span>
+          <textarea id="act-reward-message" rows="3"
+            style="width:100%;padding:10px 12px;font-size:13.5px;border:1px solid var(--line);border-radius:9px;background:var(--card);color:var(--text);resize:vertical;font-family:inherit;line-height:1.65;"
+            placeholder="例如：奖励自己一杯咖啡 ☕&#10;或者：今天又玩游戏了，下次注意！"></textarea>
+        </label>
+               <p style="font-size:11.5px;color:var(--muted);margin:8px 0 0;line-height:1.6;">
+          💡 弹窗会自动显示：活动名、用时、积分（正分绿色 / 负分红色）。这里只填额外想说的话。
+        </p>
+        <button type="button" class="btn" id="act-apply-reward-group"
+          style="margin-top:10px;font-size:11.5px;padding:5px 10px;min-height:28px;">
+          📋 应用到同分组的所有活动
+        </button>
+      </div>
+    </div>
     <div class="modal-actions">
       <button type="button" class="btn danger" id="actDelete">删除</button>
       <button type="button" class="btn" data-close>取消</button>
@@ -1195,7 +1291,23 @@
     </div>
   </div>
 </div>
-
+<!-- ================= 完成奖励弹窗 ================= -->
+<div class="modal" id="rewardModal">
+  <div class="modal-mask" data-close></div>
+  <div class="modal-card" role="dialog" style="max-width:360px">
+    <div class="reward-pop">
+      <div class="reward-icon" id="rewardIcon">🎉</div>
+      <div class="reward-title" id="rewardTitle">完成啦！</div>
+      <div class="reward-item-name" id="rewardItemName"></div>
+      <div class="reward-meta" id="rewardMeta"></div>
+      <div class="reward-points" id="rewardPoints"></div>
+      <div class="reward-message" id="rewardMessage" style="display:none"></div>
+    </div>
+    <div class="modal-actions" style="justify-content:center">
+      <button type="button" class="btn primary" data-close>收下奖励</button>
+    </div>
+  </div>
+</div>
 <!-- ================= 积分明细弹窗 ================= -->
 <div class="modal" id="historyModal">
   <div class="modal-mask" data-close></div>
@@ -1557,6 +1669,12 @@ function loadWheel() {
         points: Number(a.points) || 0,
         color: isHex(a.color) ? a.color : PALETTE[0],
         url: a.url || null,
+        reward: a.reward ? {
+          enabled: !!a.reward.enabled,
+          icon: String(a.reward.icon || '🎉').slice(0, 4),
+          title: String(a.reward.title || '完成啦！').slice(0, 20),
+          message: String(a.reward.message || '').slice(0, 300)
+        } : { enabled: false, icon: '🎉', title: '完成啦！', message: '' },
         subItems: Array.isArray(a.subItems) ? a.subItems.map(s => ({
           id: s.id || uid(),
           name: String(s.name || '').slice(0, 20),
@@ -1585,9 +1703,10 @@ function initWheelData() {
       id: uid(),
       name: d.name, group: d.group, enabled: true,
       weight: d.weight, minutes: d.minutes, points: d.points,
-      color: d.color || PALETTE[i % PALETTE.length],
+          color: d.color || PALETTE[i % PALETTE.length],
       url: d.url || null,
-      subItems: []
+      subItems: [],
+      reward: { enabled: false, icon: '🎉', title: '完成啦！', message: '' }
     })),
     score: 0,
     history: [],
@@ -2095,6 +2214,9 @@ function checkin(silent) {
   if (!silent) playCheckinSound(p >= 0);
   updateCheckinBtn();
 
+  // 打卡完成后，弹奖励弹窗
+  if (!silent) showRewardModal(item, p);
+
   $('result').innerHTML = p !== 0
     ? '✅ 已打卡：<b>' + escapeHtml(item.name) + '</b> · ' + (p > 0 ? '+' : '') + p + ' 分'
     : '✅ 已打卡：<b>' + escapeHtml(item.name) + '</b>';
@@ -2106,16 +2228,77 @@ function checkin(silent) {
     localStorage.setItem('workbench-global-v1', JSON.stringify(g));
   } catch (e) {}
 
-  // 打卡完成后清掉持久化，防止刷新后重复显示"待打卡"
-  try {
-    const g = readGlobal();
-    delete g.wheelPickPersist;
-    localStorage.setItem('workbench-global-v1', JSON.stringify(g));
-  } catch (e) {}
-
   resetGlobalPomodoro();
 }
 
+/* ---------- 完成奖励弹窗 ---------- */
+function showRewardModal(item, points) {
+  // 找到原活动（可能是子转盘合成的 item，id 形如 "parentId:subId"）
+  let src = item.reward;
+  if (!src) {
+    const rootId = String(item.id || '').split(':')[0];
+    const parent = wheelState.activities.find(a => a.id === rootId);
+    src = parent && parent.reward;
+  }
+  if (!src || !src.enabled) return;
+
+  $('rewardIcon').textContent = src.icon || '🎉';
+  $('rewardTitle').textContent = src.title || '完成啦！';
+  $('rewardItemName').textContent = '「' + item.name + '」';
+
+  const mins = Math.round(item.minutes || 0);
+  $('rewardMeta').textContent = mins > 0 ? ('用时 ' + mins + ' 分钟') : '自由安排';
+
+  const pts = Math.round(points || 0);
+  const pEl = $('rewardPoints');
+  if (pts > 0) {
+    pEl.textContent = '+' + pts + ' 分';
+    pEl.className = 'reward-points up';
+  } else if (pts < 0) {
+    pEl.textContent = pts + ' 分';
+    pEl.className = 'reward-points down';
+  } else {
+    pEl.textContent = '不计分';
+    pEl.className = 'reward-points zero';
+  }
+
+  const msgEl = $('rewardMessage');
+  if (src.message) {
+    msgEl.textContent = src.message;
+    msgEl.style.display = '';
+  } else {
+    msgEl.style.display = 'none';
+  }
+
+  playRewardSound();
+  $('rewardModal').classList.add('is-open');
+}
+
+/* ---------- 奖励音效：上行四音 ---------- */
+function playRewardSound() {
+  if (!wheelState.settings.soundEnabled) return;
+  unlockAudio();
+  if (!audioCtx) return;
+  if (audioCtx.state === 'suspended') audioCtx.resume();
+  const vol = wheelState.settings.volume;
+  if (vol <= 0) return;
+  const notes = [523.25, 659.25, 783.99, 1046.50];
+  const t0 = audioCtx.currentTime + 0.02;
+  notes.forEach((freq, i) => {
+    const t = t0 + i * 0.09;
+    const osc = audioCtx.createOscillator();
+    const gain = audioCtx.createGain();
+    osc.type = 'triangle';
+    osc.frequency.value = freq;
+    gain.gain.setValueAtTime(0.0001, t);
+    gain.gain.exponentialRampToValueAtTime(0.26 * vol, t + 0.015);
+    gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.28);
+    osc.connect(gain).connect(audioCtx.destination);
+    osc.start(t);
+    osc.stop(t + 0.30);
+  });
+  if (navigator.vibrate) { try { navigator.vibrate([120, 60, 160]); } catch (e) {} }
+}
 function addScore(delta, reason, activityId) {
   wheelState.score += delta;
   wheelState.history.unshift({ delta: delta, reason: reason, time: Date.now(), activityId: activityId || null });
@@ -2506,6 +2689,13 @@ function openActivityEditor(id) {
   editingActColor = a ? a.color : PALETTE[wheelState.activities.length % PALETTE.length];
   renderActSwatches(editingActColor);
   $('actDelete').style.display = a ? '' : 'none';
+  // 完成奖励配置
+  const rw = (a && a.reward) ? a.reward : { enabled: false, icon: '🎉', title: '完成啦！', message: '' };
+  $('act-has-reward').checked = !!rw.enabled;
+  $('act-reward-section').style.display = rw.enabled ? '' : 'none';
+  $('act-reward-icon').value = rw.icon || '🎉';
+  $('act-reward-title').value = rw.title || '完成啦！';
+  $('act-reward-message').value = rw.message || '';
 editingActSubItems = a && Array.isArray(a.subItems)
   ? JSON.parse(JSON.stringify(a.subItems))
   : [];
@@ -2525,8 +2715,14 @@ $('actSave').addEventListener('click', () => {
     weight: Math.max(0, Math.min(20, Number($('act-weight').value) || 0)),
     minutes: Math.max(0, Math.min(600, Number($('act-minutes').value) || 0)),
     points: Math.max(-100, Math.min(100, Number($('act-points').value) || 0)),
-    url: $('act-url').value.trim() || null,
+       url: $('act-url').value.trim() || null,
     color: isHex(editingActColor) ? editingActColor : '#4f7cff',
+    reward: {
+      enabled: $('act-has-reward').checked,
+      icon: ($('act-reward-icon').value || '🎉').trim().slice(0, 4),
+      title: ($('act-reward-title').value || '完成啦！').trim().slice(0, 20),
+      message: ($('act-reward-message').value || '').trim().slice(0, 300)
+    },
     subItems: ($('act-has-sub').checked && editingActSubItems.length > 0)
       ? editingActSubItems.filter(s => (s.name || '').trim())
       : []
@@ -2578,7 +2774,42 @@ function renderActSubItems() {
     });
   });
 }
-
+$('act-apply-reward-group').addEventListener('click', () => {
+  const group = $('act-group').value.trim();
+  if (!group) {
+    toast('当前活动没有分组，无法批量应用');
+    return;
+  }
+  const reward = {
+    enabled: $('act-has-reward').checked,
+    icon: ($('act-reward-icon').value || '🎉').trim().slice(0, 4),
+    title: ($('act-reward-title').value || '完成啦！').trim().slice(0, 20),
+    message: ($('act-reward-message').value || '').trim().slice(0, 300)
+  };
+  const targets = wheelState.activities.filter(a =>
+    (a.group || '') === group && a.id !== editingActId
+  );
+  if (!targets.length) {
+    toast('同分组没有其他活动');
+    return;
+  }
+  const verb = reward.enabled ? '启用' : '关闭';
+  if (!confirm(
+    '批量应用奖励配置？\n\n' +
+    '分组：「' + group + '」\n' +
+    '将' + verb + '该分组下 ' + targets.length + ' 个活动的完成奖励。\n' +
+    '（不包括当前正在编辑的这个）'
+  )) return;
+  targets.forEach(a => {
+    a.reward = JSON.parse(JSON.stringify(reward));
+  });
+  saveWheel();
+  renderActivityList();
+  toast('已应用到 ' + targets.length + ' 个活动');
+});
+$('act-has-reward').addEventListener('change', e => {
+  $('act-reward-section').style.display = e.target.checked ? '' : 'none';
+});
 $('act-has-sub').addEventListener('change', e => {
   $('act-sub-section').style.display = e.target.checked ? '' : 'none';
   if (e.target.checked && !editingActSubItems.length) {
@@ -2848,6 +3079,12 @@ $('wheelImportFile').addEventListener('change', e => {
           points: Number(a.points) || 0,
           color: isHex(a.color) ? a.color : PALETTE[0],
           url: a.url || null,
+          reward: a.reward ? {
+            enabled: !!a.reward.enabled,
+            icon: String(a.reward.icon || '🎉').slice(0, 4),
+            title: String(a.reward.title || '完成啦！').slice(0, 20),
+            message: String(a.reward.message || '').slice(0, 300)
+          } : { enabled: false, icon: '🎉', title: '完成啦！', message: '' },
           subItems: Array.isArray(a.subItems) ? a.subItems.map(s => ({
             id: s.id || uid(),
             name: String(s.name || '').slice(0, 20),
@@ -3255,7 +3492,7 @@ $('subAcceptBtn').addEventListener('click', () => {
   if (!subPicked || !subWheelParent) return;
   const parent = subWheelParent;
   const sub = subPicked;
-  const combined = {
+    const combined = {
     id: parent.id + ':' + (sub.id || sub.name),
     name: parent.name + ' · ' + sub.name,
     group: parent.group,
@@ -3263,6 +3500,7 @@ $('subAcceptBtn').addEventListener('click', () => {
     minutes: (sub.minutes != null ? sub.minutes : parent.minutes) || 0,
     points: (sub.points != null ? sub.points : parent.points) || 0,
     url: parent.url,
+    reward: parent.reward,
     subItems: []
   };
   $('subWheelModal').classList.remove('is-open');
