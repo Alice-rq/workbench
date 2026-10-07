@@ -1971,9 +1971,8 @@ function openSubWheel(parent) {
   $('subAcceptBtn').disabled = true;
   $('subSpinBtn').disabled = false;
   $('subWheelModal').classList.add('is-open');
-  setTimeout(() => {
+   setTimeout(() => {
     resizeSubWheel();
-    window.addEventListener('resize', resizeSubWheel);
   }, 60);
 }
 
@@ -2152,7 +2151,8 @@ function finishResult(item) {
         color: item.color,
         minutes: item.minutes,
         points: item.points,
-        url: item.url
+        url: item.url,
+        reward: item.reward
       },
       settled: false,
       at: Date.now()
@@ -2213,6 +2213,13 @@ function checkin(silent) {
   addScore(p, item.name, item.id);
   if (!silent) playCheckinSound(p >= 0);
   updateCheckinBtn();
+
+  // 打卡反馈：给一个明显的 toast 提示
+  if (!silent) {
+    if (p > 0) toast('✅ 打卡成功 +' + p + ' 分');
+    else if (p < 0) toast('✅ 打卡成功 ' + p + ' 分');
+    else toast('✅ 打卡成功');
+  }
 
   // 打卡完成后，弹奖励弹窗
   if (!silent) showRewardModal(item, p);
@@ -2301,7 +2308,7 @@ function playRewardSound() {
 }
 function addScore(delta, reason, activityId) {
   wheelState.score += delta;
-  wheelState.history.unshift({ delta: delta, reason: reason, time: Date.now(), activityId: activityId || null });
+   wheelState.history.unshift({ id: uid(), delta: delta, reason: reason, time: Date.now(), activityId: activityId || null });
   if (wheelState.history.length > 200) wheelState.history.length = 200;
   if (delta > 0) updateStreak();
   saveWheel();
@@ -2396,9 +2403,9 @@ function _removeHistoryAt(idx) {
 }
 
 /* -------- 删除明细里某一条 -------- */
-function deleteHistoryItem(timeKey) {
-  if (!timeKey) return;
-  const idx = wheelState.history.findIndex(h => h.time === timeKey);
+function deleteHistoryItem(recordId) {
+  if (!recordId) return;
+  const idx = wheelState.history.findIndex(h => h.id === recordId);
   if (idx < 0) return;
   const h = wheelState.history[idx];
   const d = Math.round(h.delta || 0);
@@ -2546,15 +2553,27 @@ function startDrag(row, id, e) {
     row.classList.remove('dragging');
     document.body.style.userSelect = '';
     const newOrder = [];
-    list.querySelectorAll('.act-row').forEach(r => {
-      const a = wheelState.activities.find(x => x.id === r.dataset.id);
-      if (a) newOrder.push(a);
+    let currentGroup = '';
+    list.childNodes.forEach(node => {
+      if (node.nodeType !== 1) return;
+      if (node.classList && node.classList.contains('act-group')) {
+        currentGroup = node.textContent.trim();
+        return;
+      }
+      if (node.classList && node.classList.contains('act-row')) {
+        const a = wheelState.activities.find(x => x.id === node.dataset.id);
+        if (a) {
+          a.group = (currentGroup === '未分组') ? '' : currentGroup;
+          newOrder.push(a);
+        }
+      }
     });
     if (newOrder.length === wheelState.activities.length) {
       wheelState.activities = newOrder;
       saveWheel();
       row.classList.add('just-moved');
       setTimeout(() => row.classList.remove('just-moved'), 400);
+      renderActivityList();
       drawWheel();
     }
   }
@@ -2733,9 +2752,10 @@ $('actSave').addEventListener('click', () => {
   } else {
     wheelState.activities.push(Object.assign({ id: uid(), enabled: true }, data));
   }
-  saveWheel();
+   saveWheel();
   renderActivityList();
   drawWheel();
+  updateCheckinBtn();
   $('actModal').classList.remove('is-open');
   editingActId = null;
 });
@@ -2750,7 +2770,7 @@ function renderActSubItems() {
   list.innerHTML = editingActSubItems.map((s, i) =>
     '<div class="sub-item-edit-row" data-i="' + i + '">' +
       '<input type="text" data-k="name" value="' + escapeHtml(s.name || '') + '" placeholder="子项名称" maxlength="20">' +
-      '<input type="number" data-k="weight" value="' + (s.weight || 1) + '" min="0" max="20" step="0.5" title="权重">' +
+            '<input type="number" data-k="weight" value="' + (s.weight == null ? 1 : s.weight) + '" min="0" max="20" step="0.5" title="权重">' +
       '<input type="number" data-k="minutes" value="' + (s.minutes || 0) + '" min="0" max="600" step="5" title="时长">' +
       '<input type="number" data-k="points" value="' + (s.points || 0) + '" min="-100" max="100" step="1" title="积分">' +
       '<button type="button" class="del-btn" data-del>×</button>' +
@@ -2952,16 +2972,16 @@ function renderHistory() {
           '<span class="h-time">' + timeStr + '</span>' +
           '<span class="h-name">' + escapeHtml(h.reason || '未知') + '</span>' +
           '<span class="h-delta ' + cls + '">' + txt + '</span>' +
-          '<button type="button" class="h-del" data-del-history="' + h.time + '" title="删除这条">×</button>' +
+                  '<button type="button" class="h-del" data-del-history="' + (h.id || h.time) + '" title="删除这条">×</button>' +
         '</div>';
       }).join('') +
     '</div>';
   }).join('');
 
   // ---------- 绑定每条记录的删除按钮 ----------
-  list.querySelectorAll('[data-del-history]').forEach(btn => {
+   list.querySelectorAll('[data-del-history]').forEach(btn => {
     btn.addEventListener('click', () => {
-      deleteHistoryItem(Number(btn.dataset.delHistory));
+      deleteHistoryItem(btn.dataset.delHistory);
     });
   });
 }
@@ -3222,7 +3242,7 @@ function renderWbSwatches(selected) {
   const box = $('wb-colors');
   const cur = (selected || '').toLowerCase();
   box.innerHTML = WB_COLORS.map(c =>
-    '<button type="button" class="swatch ' + (c === selected ? 'on' : '') + '" data-color="' + c + '" style="--s:' + c + '"></button>'
+        '<button type="button" class="swatch ' + (c.toLowerCase() === cur ? 'on' : '') + '" data-color="' + c + '" style="--s:' + c + '"></button>'
   ).join('');
   box.querySelectorAll('.swatch').forEach(b => {
     b.addEventListener('click', () => {
@@ -3561,8 +3581,9 @@ function boot() {
   updateCheckinBtn();
   syncSettingsUI();
 
-  resizeWheel();
+    resizeWheel();
   window.addEventListener('resize', resizeWheel);
+  window.addEventListener('resize', resizeSubWheel);
 
   const g = readGlobal();
 
