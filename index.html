@@ -3322,6 +3322,8 @@ function renderRewardOptions() {
 
 $('act-add-reward-opt').addEventListener('click', () => {
   editingActRewardOptions.push({ item: '', minutes: 0, points: 0 });
+  $('act-has-reward').checked = true;
+  $('act-reward-section').style.display = '';
   renderRewardOptions();
 });
 function renderActSubItems() {
@@ -3473,7 +3475,21 @@ $('act-apply-reward-group').addEventListener('click', () => openApplyPickModal('
 $('act-apply-reward-pick').addEventListener('click', () => openApplyPickModal('pick'));
 $('act-add-sub').addEventListener('click', () => {
   editingActSubItems.push({ id: uid(), name: '', weight: 1, minutes: 25, points: 10 });
+  $('act-has-sub').checked = true;
+  $('act-sub-section').style.display = '';
   renderActSubItems();
+});
+/* ---- 勾选框联动 ---- */
+$('act-has-sub').addEventListener('change', e => {
+  $('act-sub-section').style.display = e.target.checked ? '' : 'none';
+  if (e.target.checked && !editingActSubItems.length) {
+    editingActSubItems.push({ id: uid(), name: '', weight: 1, minutes: 25, points: 10 });
+    renderActSubItems();
+  }
+});
+
+$('act-has-reward').addEventListener('change', e => {
+  $('act-reward-section').style.display = e.target.checked ? '' : 'none';
 });
 
 $('actDelete').addEventListener('click', () => {
