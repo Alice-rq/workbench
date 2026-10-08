@@ -5776,7 +5776,10 @@ function exportMarkdown() {
   applyTheme();
   await IDB.init();
   load();
+     load();
+  syncSharedPomodoros();   // ← 新增：把文件1（或其它标签页）产生的番茄钟合并进来
    
+  if (!state.tasks.length && !state.notes.length && !state.inbox.length && !state.plans.length) {
   if (!state.tasks.length && !state.notes.length && !state.inbox.length && !state.plans.length) {
     const now = Date.now();
     // 示例任务
@@ -5928,22 +5931,107 @@ A: 3 个最佳，结构清晰。`,
 
   render();
 })();
-/* ===== 全局番茄钟结束时自动记录学习时长 ===== */
+/* ===== 番茄钟共享：与「我的工作台」等平台互通 ===== */
+const SHARED_POMO_KEY = 'workbench-pomodoro-shared-v1';
+
+/* 写入共享日志（本页或他页结束时都往这里写） */
+function pushSharedPomodoro(detail) {
+  const totalSeconds = Math.round((detail && detail.totalSeconds) || 0);
+  if (totalSeconds <= 0) return null;
+
+  const endedAt = Date.now();
+  const d = new Date(endedAt);
+  const pad = n => String(n).padStart(2, '0');
+  const record = {
+    id: 'pomo-' + endedAt.toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+    label: String((detail && detail.label) || '').slice(0, 40),
+    seconds: totalSeconds,
+    minutes: Math.max(1, Math.round(totalSeconds / 60)),
+    endedAt,
+    date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+  };
+
+  try {
+    let arr = [];
+    try { arr = JSON.parse(localStorage.getItem(SHARED_POMO_KEY) || '[]'); } catch (e) { arr = []; }
+    if (!Array.isArray(arr)) arr = [];
+
+    const dup = arr.find(r =>
+      r && r.seconds === record.seconds &&
+      Math.abs((r.endedAt || 0) - endedAt) < 30000
+    );
+    if (dup) return dup;
+
+    arr.push(record);
+    if (arr.length > 500) arr = arr.slice(-500);
+    localStorage.setItem(SHARED_POMO_KEY, JSON.stringify(arr));
+    return record;
+  } catch (e) { return null; }
+}
+
+/* 把共享日志里"本页还没记过"的番茄钟合并进 sessions */
+function syncSharedPomodoros() {
+  let arr;
+  try { arr = JSON.parse(localStorage.getItem(SHARED_POMO_KEY) || '[]'); } catch (e) { return 0; }
+  if (!Array.isArray(arr) || !arr.length) return 0;
+
+  const seen = new Set(
+    (state.sessions || []).map(s => s.sharedId).filter(Boolean)
+  );
+
+  let added = 0;
+  for (const p of arr) {
+    if (!p || !p.id || seen.has(p.id)) continue;
+    const endTs = p.endedAt || Date.now();
+    state.sessions.push({
+      id: uid(),
+      sharedId: p.id,
+      date: p.date || dateKey(new Date(endTs)),
+      minutes: p.minutes || Math.max(1, Math.round((p.seconds || 0) / 60)),
+      at: endTs,
+      kind: 'pomodoro',
+      note: p.label || ''
+    });
+    seen.add(p.id);
+    added++;
+  }
+
+  if (added) save();
+  return added;
+}
+
+/* 本页番茄钟结束 → 写共享日志 + 立即合并 */
 window.addEventListener('global-pomodoro-end', function (e) {
   const d = (e && e.detail) || {};
-  const mins = Math.round((d.totalSeconds || 0) / 60);
-  if (mins <= 0) return;
-  state.sessions.push({
-    id: uid(),
-    date: dateKey(),
-    minutes: mins,
-    at: Date.now(),
-    kind: 'pomodoro',
-    note: d.label || ''
-  });
-  save();
-  if (state.view === 'today' || state.view === 'stats') render();
+  if (Math.round(d.totalSeconds || 0) <= 0) return;
+  pushSharedPomodoro(d);
+  const added = syncSharedPomodoros();
+  if (added && (state.view === 'today' || state.view === 'stats')) render();
 });
+
+/* 其他标签页（如「我的工作台」）结束时，storage 事件触发同步 */
+window.addEventListener('storage', function (e) {
+  if (e.key !== SHARED_POMO_KEY) return;
+  const added = syncSharedPomodoros();
+  if (added) {
+    if (state.view === 'today' || state.view === 'stats') render();
+    toast(`同步到 ${added} 个番茄钟记录 🍅`);
+  }
+});
+
+/* BroadcastChannel 兜底：更即时（有些浏览器 storage 触发有延迟） */
+try {
+  if ('BroadcastChannel' in window) {
+    const pomoChannel = new BroadcastChannel('workbench-pomodoro');
+    pomoChannel.addEventListener('message', () => {
+      const added = syncSharedPomodoros();
+      if (added) {
+        if (state.view === 'today' || state.view === 'stats') render();
+        toast(`同步到 ${added} 个番茄钟记录 🍅`);
+      }
+    });
+  }
+} catch (e) {}
 /* ===== 同步状态到总工作台 ===== */
 function syncStatusToHub(){
   try {
