@@ -5776,10 +5776,8 @@ function exportMarkdown() {
   applyTheme();
   await IDB.init();
   load();
-     load();
-  syncSharedPomodoros();   // ← 新增：把文件1（或其它标签页）产生的番茄钟合并进来
-   
-  if (!state.tasks.length && !state.notes.length && !state.inbox.length && !state.plans.length) {
+  syncSharedPomodoros();   // 把文件1（或其它标签页）产生的番茄钟合并进来
+
   if (!state.tasks.length && !state.notes.length && !state.inbox.length && !state.plans.length) {
     const now = Date.now();
     // 示例任务
