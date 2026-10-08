@@ -3519,7 +3519,53 @@ function startGlobalPomodoro(label, seconds) {
 function resetGlobalPomodoro() {
   if (window.GlobalBar) GlobalBar.reset();
 }
+/* ===== 番茄钟共享日志：让「学习工作台」等子平台也能统计到 ===== */
+const SHARED_POMO_KEY = 'workbench-pomodoro-shared-v1';
 
+function pushSharedPomodoro(detail) {
+  const totalSeconds = Math.round((detail && detail.totalSeconds) || 0);
+  if (totalSeconds <= 0) return;
+
+  const endedAt = Date.now();
+  const d = new Date(endedAt);
+  const pad = n => String(n).padStart(2, '0');
+  const record = {
+    id: 'pomo-' + endedAt.toString(36) + '-' + Math.random().toString(36).slice(2, 6),
+    label: String((detail && detail.label) || '').slice(0, 40),
+    seconds: totalSeconds,
+    minutes: Math.max(1, Math.round(totalSeconds / 60)),
+    endedAt,
+    date: d.getFullYear() + '-' + pad(d.getMonth() + 1) + '-' + pad(d.getDate())
+  };
+
+  try {
+    let arr = [];
+    try { arr = JSON.parse(localStorage.getItem(SHARED_POMO_KEY) || '[]'); } catch (e) { arr = []; }
+    if (!Array.isArray(arr)) arr = [];
+
+    // 多标签页同时触发时去重：30 秒内、时长相同 → 视为同一次
+    const dup = arr.find(r =>
+      r && r.seconds === record.seconds &&
+      Math.abs((r.endedAt || 0) - endedAt) < 30000
+    );
+    if (dup) return;
+
+    arr.push(record);
+    if (arr.length > 500) arr = arr.slice(-500);
+    localStorage.setItem(SHARED_POMO_KEY, JSON.stringify(arr));
+
+    // 广播给同源其他标签页（更即时）
+    try {
+      if ('BroadcastChannel' in window) {
+        new BroadcastChannel('workbench-pomodoro').postMessage({ type: 'pomodoro', id: record.id });
+      }
+    } catch (e) {}
+  } catch (e) {}
+}
+
+window.addEventListener('global-pomodoro-end', function (e) {
+  pushSharedPomodoro((e && e.detail) || {});
+});
 /* 番茄钟结束时，弹打卡确认框 */
 window.addEventListener('global-pomodoro-end', function () {
   if (currentPick && !currentPick.settled) showConfirm();
