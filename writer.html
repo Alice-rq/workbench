@@ -74,6 +74,41 @@
   background: var(--hover);
   border-radius: 4px;
 }
+.trash-item {
+  padding: 10px 12px;
+  border-radius: 9px;
+  background: var(--panel-2);
+  border: 1px solid var(--border);
+  margin-bottom: 6px;
+  transition: border-color .15s, box-shadow .15s;
+}
+.trash-item:hover {
+  border-color: color-mix(in srgb, var(--accent) 30%, var(--border));
+  box-shadow: var(--shadow-sm);
+}
+.trash-meta {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 8px;
+  font-size: 11.5px;
+  color: var(--text-3);
+  margin-bottom: 6px;
+}
+.trash-source {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  min-width: 0;
+  flex: 1;
+}
+.trash-time { flex-shrink: 0; }
+.trash-actions {
+  display: flex;
+  gap: 6px;
+  margin-top: 8px;
+  flex-wrap: wrap;
+}
   *{box-sizing:border-box;margin:0;padding:0}
    :root{
 --ui-scale: 1;
@@ -109,15 +144,7 @@
     --accent-dark: var(--accent);
     --accent-light: var(--accent-soft);
     --warning: var(--warn);
-    --blue: #5b8dd9;
-    --purple: #8b7fc7;
-    --teal: #5fa8a0;
     --gold: #c9a959;
-    --fs-1: 11px;
-    --fs-2: 12.5px;
-    --fs-3: 14px;
-    --fs-4: 15px;
-    --fs-5: 17px;
     --radius-sm: 6px;
   }
    [data-theme="dark"]{
@@ -1371,77 +1398,6 @@
     background: var(--accent-soft);
   }
   /* 番茄钟 */
-  .pomodoro-panel {
-    display: none;
-    position: fixed;
-    top: 54px;
-    right: 14px;
-    background: var(--panel);
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    box-shadow: 0 8px 32px rgba(0,0,0,.18);
-    z-index: 96;
-    padding: 18px;
-    width: 260px;
-    text-align: center;
-  }
-  .pomodoro-panel.show { display: block; }
-  .pomodoro-panel h4 {
-    font-size: 13px;
-    font-weight: 600;
-    margin-bottom: 14px;
-    color: var(--text);
-  }
-  .pomodoro-time {
-    font-size: 44px;
-    font-weight: 700;
-    color: var(--accent);
-    font-variant-numeric: tabular-nums;
-    letter-spacing: -.02em;
-    line-height: 1;
-    margin-bottom: 6px;
-  }
-  .pomodoro-label {
-    font-size: 12px;
-    color: var(--text-3);
-    margin-bottom: 16px;
-  }
-  .pomodoro-actions {
-    display: flex;
-    gap: 6px;
-    margin-bottom: 12px;
-  }
-  .pomodoro-actions .btn { flex: 1; font-size: 12px; padding: 8px 4px; }
-  .pomodoro-settings {
-    display: flex;
-    gap: 8px;
-    font-size: 12px;
-    align-items: center;
-  }
-  .pomodoro-settings label {
-    flex: 1;
-    display: flex;
-    gap: 4px;
-    align-items: center;
-    color: var(--text-2);
-  }
-  .pomodoro-settings input {
-    width: 44px;
-    padding: 4px 6px;
-    font-size: 12px;
-    border-radius: 6px;
-    border: 1px solid var(--border);
-    background: var(--panel-2);
-    color: var(--text);
-    text-align: center;
-  }
-  @media (max-width: 768px) {
-    .pomodoro-panel {
-      top: auto; bottom: 0; left: 0; right: 0;
-      width: 100%;
-      border-radius: 14px 14px 0 0;
-    }
-  }
   .theme-dot {
     width: 32px;
     height: 32px;
@@ -1497,29 +1453,60 @@
   }
 .form-row{display:grid;grid-template-columns:1fr 1fr;gap:8px}
 @media (max-width:768px){.form-row{grid-template-columns:1fr}}
-.volume-label{font-size:10.5px;color:var(--text-3);font-weight:600;padding:6px 4px 2px 12px;letter-spacing:.5px;text-transform:uppercase}
+.volume-label{
+  font-size:10.5px;color:var(--text-3);font-weight:600;
+  padding:6px 4px 2px 4px;letter-spacing:.5px;text-transform:uppercase;
+  display:flex;align-items:center;gap:4px;
+  cursor:grab;user-select:none;
+  border-radius:5px;
+  transition:background .15s, border-color .15s;
+  border-top:2px solid transparent;
+}
+.volume-label:hover { background: var(--hover); color: var(--text-2); }
+.volume-label:active { cursor: grabbing; }
+.volume-label.dragging { opacity: .4; }
+.volume-label.drag-over { border-top-color: var(--accent); background: var(--accent-soft); }
+.volume-label .vol-drag {
+  color: var(--text-3); cursor: grab;
+  font-size: 11px; letter-spacing: -2px; opacity: .5;
+  padding: 0 2px;
+}
+.volume-label .vol-name {
+  flex: 1; min-width: 0;
+  overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+}
+.volume-label .icon-btn {
+  opacity: 0;
+  padding: 2px 6px;
+  font-size: 12px;
+  min-width: 0;
+}
+.volume-label:hover .icon-btn { opacity: 1; }
+.volume-label .icon-btn:disabled {
+  opacity: 0.2 !important;
+  cursor: default;
+}
+.add-volume-row {
+  padding: 8px 4px 0;
+  text-align: center;
+}
+.add-volume-row .btn {
+  font-size: 11.5px;
+  padding: 4px 12px;
+  width: 100%;
+  color: var(--text-3);
+  background: transparent;
+  border: 1px dashed var(--border);
+}
+.add-volume-row .btn:hover {
+  color: var(--accent);
+  border-color: var(--accent);
+  background: var(--accent-soft);
+}
 .writer-alert{margin:4px 0;padding:7px 12px;border-radius:8px;font-size:12.5px;line-height:1.6}
 .writer-alert.ooc{background:rgba(245,158,11,.12);border-left:3px solid var(--warn);color:var(--warn)}
 .writer-alert.sens{background:rgba(239,68,68,.12);border-left:3px solid var(--danger);color:var(--danger)}
-        .rel-card{background:var(--bg-card);border:1px solid var(--border);border-radius:calc(8px * var(--ui-scale));padding:calc(10px * var(--ui-scale)) calc(12px * var(--ui-scale));margin-bottom:calc(8px * var(--ui-scale));position:relative}
-        .rel-card .rel-header{display:flex;align-items:center;gap:calc(6px * var(--ui-scale));margin-bottom:calc(6px * var(--ui-scale))}
-        .rel-card .rel-other-name{font-weight:700;font-size:calc(12px * var(--ui-scale));color:var(--accent-dark)}
-        .rel-card .rel-row{display:grid;grid-template-columns:1fr 1fr;gap:calc(8px * var(--ui-scale));margin-bottom:calc(6px * var(--ui-scale))}
-        .rel-card .rel-direction-label{font-size:calc(9px * var(--ui-scale));font-weight:600;color:var(--text-muted);margin-bottom:calc(2px * var(--ui-scale))}
-        .rel-card .rel-del-btn{position:absolute;top:calc(6px * var(--ui-scale));right:calc(8px * var(--ui-scale))}
-        .rel-card .rel-input-wrapper{display:flex;flex-direction:column}
-            .rel-card .rel-row{grid-template-columns:1fr}
-            .top-bar{padding:calc(6px * var(--ui-scale)) calc(8px * var(--ui-scale));gap:calc(4px * var(--ui-scale))}
-            .top-bar .logo{font-size:calc(13px * var(--ui-scale))}
-            .global-search{max-width:calc(120px * var(--ui-scale))}
-            .btn{padding:calc(4px * var(--ui-scale)) calc(8px * var(--ui-scale));font-size:calc(10px * var(--ui-scale))}
-            .top-actions{gap:calc(3px * var(--ui-scale))}
-            .top-actions .btn{padding:calc(4px * var(--ui-scale)) calc(6px * var(--ui-scale));font-size:calc(9px * var(--ui-scale))}
-            .section-header h2{font-size:calc(14px * var(--ui-scale))}
-            .chapter-item{flex-wrap:wrap}
-            .chapter-item .chapter-actions{margin-left:auto}
-        }
-        @media(max-width:480px){
+                   @media(max-width:480px){
             .top-bar .logo span{display:none}
             .top-bar .global-search{display:none}
             .top-actions .btn{padding:calc(3px * var(--ui-scale)) calc(5px * var(--ui-scale));font-size:calc(8px * var(--ui-scale))}
@@ -1532,26 +1519,10 @@
 .rel-card .rel-other-name{font-size:calc(var(--fs-4) * var(--ui-scale))}
 .rel-card .rel-direction-label{font-size:calc(var(--fs-1) * var(--ui-scale))}
 
-        .character-card{background:var(--bg-card);border:1px solid var(--border);border-radius:calc(10px * var(--ui-scale));padding:calc(11px * var(--ui-scale));cursor:pointer;display:flex;flex-direction:column;gap:calc(3px * var(--ui-scale));min-height:calc(110px * var(--ui-scale));position:relative}
-        .character-card:hover{border-color:var(--accent-dark);box-shadow:var(--shadow)}
-        .char-name-row{display:flex;align-items:center;flex-wrap:wrap;gap:calc(3px * var(--ui-scale));padding-right:calc(20px * var(--ui-scale))}
-        .char-del-btn{position:absolute;top:calc(6px * var(--ui-scale));right:calc(6px * var(--ui-scale));z-index:2}
+
         .char-name{font-size:calc(13px * var(--ui-scale));font-weight:700;color:var(--accent-dark)}
-        .char-aliases{font-size:calc(9px * var(--ui-scale));color:var(--text-muted)}
-        .char-detail{font-size:calc(10px * var(--ui-scale));color:var(--text-secondary);line-height:1.3}
         .attr-row{display:flex;align-items:center;gap:calc(5px * var(--ui-scale));margin-bottom:calc(4px * var(--ui-scale))}
         .attr-row .attr-name{flex:2}.attr-row .attr-value{flex:1}
-        .origin-badge{display:inline-block;font-size:calc(8px * var(--ui-scale));padding:calc(1px * var(--ui-scale)) calc(5px * var(--ui-scale));border-radius:calc(6px * var(--ui-scale));font-weight:600}
-        .origin-canon{background:rgba(91,141,217,0.15);color:var(--blue)}
-        .origin-original{background:rgba(139,127,199,0.15);color:var(--purple)}
-        .origin-semi{background:rgba(95,158,95,0.15);color:var(--success)}
-        .status-badge{display:inline-block;font-size:calc(8px * var(--ui-scale));padding:calc(1px * var(--ui-scale)) calc(6px * var(--ui-scale));border-radius:calc(6px * var(--ui-scale));font-weight:600;border:1px solid var(--border)}
-        .status-normal{background:rgba(95,158,95,0.15);color:var(--success)}
-        .status-injured{background:rgba(196,122,74,0.15);color:var(--warning)}
-        .status-dead{background:rgba(184,92,92,0.15);color:var(--danger)}
-        .status-missing{background:rgba(201,169,89,0.15);color:var(--gold)}
-        .status-dark{background:rgba(139,127,199,0.15);color:var(--purple)}
-        .status-default{background:var(--bg-hover);color:var(--text-secondary)}
         .personality-evo-item{background:var(--bg-input);border:1px solid var(--border);border-radius:calc(8px * var(--ui-scale));padding:calc(10px * var(--ui-scale)) calc(12px * var(--ui-scale));margin-bottom:calc(8px * var(--ui-scale));position:relative}
         .personality-evo-item .pev-stage{font-weight:700;color:var(--accent-dark);font-size:calc(12px * var(--ui-scale));margin-bottom:calc(4px * var(--ui-scale))}
         .personality-evo-item .pev-trigger{font-size:calc(10px * var(--ui-scale));color:var(--text-muted);margin-bottom:calc(4px * var(--ui-scale));border-left:3px solid var(--warning);padding-left:calc(6px * var(--ui-scale))}
@@ -1568,32 +1539,6 @@
         .collapsible-header{display:flex;align-items:center;gap:calc(5px * var(--ui-scale));padding:calc(7px * var(--ui-scale)) calc(10px * var(--ui-scale));background:var(--bg-input);cursor:pointer;font-size:calc(11px * var(--ui-scale));font-weight:600}
         .collapsible-content{padding:calc(8px * var(--ui-scale)) calc(10px * var(--ui-scale));background:var(--bg-card)}
         .collapsible-content.collapsed{display:none}
-  .graph-container{background:var(--bg-card);border:1px solid var(--border);border-radius:calc(var(--radius) * var(--ui-scale));padding:calc(14px * var(--ui-scale));overflow:auto}
-        .graph-container svg{display:block;margin:0 auto}
- .rel-legend{display:flex;flex-wrap:wrap;gap:calc(4px * var(--ui-scale));margin-top:calc(8px * var(--ui-scale));align-items:center}
-        .rel-legend-item{display:flex;align-items:center;gap:calc(4px * var(--ui-scale));font-size:calc(10px * var(--ui-scale));cursor:pointer;padding:calc(2px * var(--ui-scale)) calc(6px * var(--ui-scale));border-radius:calc(4px * var(--ui-scale));border:1px solid var(--border);background:var(--bg-card)}
-        .rel-dot{width:calc(12px * var(--ui-scale));height:calc(12px * var(--ui-scale));border-radius:50%}
-        .appearance-stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(calc(140px * var(--ui-scale)),1fr));gap:calc(8px * var(--ui-scale));margin-top:calc(10px * var(--ui-scale))}
-        .appearance-item{background:var(--bg-card);border:1px solid var(--border);border-radius:calc(8px * var(--ui-scale));padding:calc(8px * var(--ui-scale)) calc(10px * var(--ui-scale));font-size:calc(11px * var(--ui-scale))}
-        .appearance-item .app-name{font-weight:600;color:var(--accent-dark)}
-        .appearance-item .app-count{font-size:calc(18px * var(--ui-scale));font-weight:700;color:var(--accent-dark)}
-  .progress-bar{background:var(--bg-input);border-radius:calc(8px * var(--ui-scale));height:calc(8px * var(--ui-scale));overflow:hidden;margin-top:calc(4px * var(--ui-scale))}
-        .progress-bar .progress-fill{height:100%;background:var(--accent);border-radius:calc(8px * var(--ui-scale));transition:width 0.5s}
-      .preset-chips{display:flex;flex-wrap:wrap;gap:calc(3px * var(--ui-scale));margin-top:calc(3px * var(--ui-scale))}
-        .preset-chip{font-size:calc(8px * var(--ui-scale));padding:calc(2px * var(--ui-scale)) calc(5px * var(--ui-scale));border-radius:calc(8px * var(--ui-scale));background:var(--bg-hover);color:var(--text-secondary);cursor:pointer;border:1px solid var(--border)}
-        .preset-chip:hover{background:var(--accent-light);border-color:var(--accent-dark);color:#1a1a2e}
- .compare-table{width:100%;border-collapse:collapse;font-size:calc(12px * var(--ui-scale))}
-        .compare-table th,.compare-table td{padding:calc(8px * var(--ui-scale)) calc(10px * var(--ui-scale));border:1px solid var(--border);text-align:center}
-        .compare-table th{background:var(--bg-input);font-weight:600;font-size:calc(12px * var(--ui-scale))}
-        .compare-table td:first-child{font-weight:600;text-align:left;font-size:calc(12px * var(--ui-scale))}
-        .context-menu{position:fixed;background:var(--bg-card);border:1px solid var(--border);border-radius:calc(8px * var(--ui-scale));box-shadow:0 8px 30px rgba(0,0,0,0.2);z-index:200;min-width:calc(130px * var(--ui-scale));padding:calc(4px * var(--ui-scale));display:none}
-        .context-menu.visible{display:block}
-        .context-menu-item{display:flex;align-items:center;gap:calc(6px * var(--ui-scale));padding:calc(7px * var(--ui-scale)) calc(12px * var(--ui-scale));font-size:calc(11px * var(--ui-scale));cursor:pointer;border-radius:calc(4px * var(--ui-scale))}
-        .context-menu-item:hover{background:var(--bg-hover)}
-        .context-menu-item.danger{color:var(--danger)}
-   .section-hint{font-size:calc(10px * var(--ui-scale));color:var(--text-muted);margin-bottom:calc(10px * var(--ui-scale));background:var(--bg-card);border:1px solid var(--border);border-radius:calc(8px * var(--ui-scale));padding:calc(8px * var(--ui-scale)) calc(12px * var(--ui-scale));line-height:1.5}
-        .section-desc{font-size:calc(10px * var(--ui-scale));color:var(--text-muted)}
-
 </style>
 </head>
 <body>
@@ -1783,7 +1728,6 @@ let prefs={
   fontSize:18,lineHeight:2.0,pageWidth:960,dailyGoal:1000,
   typewriter:false,outlineCollapsed:false,
     sidebarWidth:240,rightbarWidth:210,
-  pomodoro:{ workMin:25, restMin:5, workSec:1500, restSec:300, soundEnabled:true },
   accentColor:'#6366f1',
   lockdown:{
     active:false,
@@ -1895,7 +1839,7 @@ function extractOutline(content){
   if(!content)return [];
   const items=[];
   content.split('\n').forEach((line,idx)=>{
-    const m=line.match(/^(#{1,3})\s+(.+)$/);
+   const m = line.match(/^(#{1,3})(?!#)\s*(.+)$/);
     if(m)items.push({level:m[1].length,text:m[2].trim(),lineIdx:idx});
   });
   return items;
@@ -2004,8 +1948,8 @@ function migrate(){
   const v2Raw = localStorage.getItem('fanfic_wb_v27');
   if (v2Raw) {
     try {
-      const v2 = JSON.parse(v2Raw);
-      if (v2.works && !state._migratedV2) {
+           const v2 = JSON.parse(v2Raw);
+      if (v2.works && localStorage.getItem('writer-app-migrated-v2') !== '1') {
         Object.entries(v2.works).forEach(([k, w]) => {
           const target = {
             id: uid(),
@@ -2136,17 +2080,25 @@ if (c.lastSnapshot === undefined) c.lastSnapshot = c.content || '';
     if(!m.category)m.category='灵感';
     if(m.content===undefined)m.content='';
   });
-  if(typeof prefs.dailyGoal!=='number')prefs.dailyGoal=1000;
+   if(typeof prefs.dailyGoal!=='number')prefs.dailyGoal=1000;
   if(typeof prefs.typewriter!=='boolean')prefs.typewriter=false;
   if(typeof prefs.outlineCollapsed!=='boolean')prefs.outlineCollapsed=false;
   if(typeof prefs.revisionView!=='boolean')prefs.revisionView=false;
-}
 
+   // 迁移完成后立刻落盘 + 打独立标记，彻底避免重复迁移
+  if (state._migratedV2) {
+    try {
+      delete state._migratedV2;
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
+      localStorage.setItem('writer-app-migrated-v2', '1');
+    } catch(e) { console.warn('迁移落盘失败', e); }
+  }
+}
 function loadAll(){
   try{const s=localStorage.getItem(STORAGE_KEY);if(s)state=Object.assign(state,JSON.parse(s));}catch(e){console.warn(e);}
   try{const p=localStorage.getItem(PREFS_KEY);if(p)prefs=Object.assign(prefs,JSON.parse(p));}catch(e){console.warn(e);}
-  if(!state.works.length)initSample();
-  migrate();
+  migrate();                               // ← 先迁移，把 v2 的作品补进来
+  if(!state.works.length) initSample();    // ← 迁移后仍空才塞示例
   if(!state.works.find(w=>w.id===state.currentWorkId))state.currentWorkId=state.works[0].id;
   const w=getWork();
   if(!w.chapters.find(c=>c.id===state.currentChapterId))state.currentChapterId=w.chapters[0]?.id||null;
@@ -2182,10 +2134,9 @@ function initSample(){
 写点什么吧。`,
       updatedAt:Date.now(),
     }],
-    snapshots:[],
+       snapshots:[],
     createdAt:Date.now(),
   }];
-flushCaptureDeletions();
   state.currentWorkId=wid;
   state.currentChapterId=state.works[0].chapters[0].id;
   state.characters=[];
@@ -2293,9 +2244,26 @@ function renderChapterList(w){
     if (!groups[vol]) { groups[vol] = []; order.push(vol); }
     groups[vol].push(c);
   });
+  // 只统计"有名字"的卷（忽略 '' 未分组）
+  const namedVols = order.filter(v => v);
   let html = '';
   order.forEach(vol => {
-    if (vol) html += `<div class="volume-label">📁 ${esc(vol)}</div>`;
+    if (vol) {
+      const vi = namedVols.indexOf(vol);
+      html += `<div class="volume-label"
+        draggable="true"
+        data-volume="${esc(vol)}"
+        title="拖到别的卷上可换顺序">
+        <span class="vol-drag" title="拖拽调整卷顺序">⋮⋮</span>
+        <span class="vol-name">📁 ${esc(vol)}</span>
+        <button class="icon-btn vol-up" data-action="vol-up" data-vol="${esc(vol)}"
+                ${vi===0?'disabled':''} title="上移">↑</button>
+        <button class="icon-btn vol-down" data-action="vol-down" data-vol="${esc(vol)}"
+                ${vi===namedVols.length-1?'disabled':''} title="下移">↓</button>
+        <button class="icon-btn vol-rename" data-action="vol-rename" data-vol="${esc(vol)}"
+                title="重命名">✏️</button>
+      </div>`;
+    }
     groups[vol].forEach(c => {
       const status = c.status || 'draft';
       html += `
@@ -2303,7 +2271,7 @@ function renderChapterList(w){
              draggable="true"
              data-chapter="${c.id}" data-action="select-chapter"
              title="${esc(c.summary||'')}">
-          <span class="drag-handle" title="拖拽排序">⋮⋮</span>
+          <span class="drag-handle" title="拖拽排序，或拖到卷标题上归入该卷">⋮⋮</span>
           <span class="chapter-name">
             ${esc(c.title||'未命名')}
             ${c.revisionBase?'<span class="rev-item-mark">修订</span>':''}
@@ -2314,6 +2282,9 @@ function renderChapterList(w){
       `;
     });
   });
+  html += `<div class="add-volume-row">
+    <button class="btn small" data-action="new-volume">＋ 新建卷（把当前章节移进去）</button>
+  </div>`;
   return `<div class="chapter-list">${html}</div>`;
 }
 function renderFilterBar(list,scope){
@@ -3021,7 +2992,23 @@ function updateEditorMeta(){
   $('#statusChars').textContent=t.length+' 字符';
   $('#statusToday').textContent='今日 '+getTodayWords()+' 字';
 }
-
+function trackIdeaRefs(ch){
+  // 正文里写 {{点子名}} 时，自动把该点子关联到当前章节
+  if (!ch || !ch.content) return;
+  const re = /\{\{(.+?)\}\}/g;
+  let m;
+  const found = new Set();
+  while ((m = re.exec(ch.content))) found.add(m[1].trim());
+  if (!found.size) return;
+  let changed = false;
+  state.ideas.forEach(it => {
+    if (found.has(it.title) && it.scope === 'chapter') {
+      it.usedIn = it.usedIn || [];
+      if (!it.usedIn.includes(ch.id)) { it.usedIn.push(ch.id); changed = true; }
+    }
+  });
+  if (changed) { saveNow(); if (prefs.tab === 'ideas') renderTab(); }
+}
 function loadChapterIntoEditor(){
   const ch=getChapter();
   $('#editor').value=ch?.content||'';
@@ -3102,9 +3089,12 @@ function inlineMd(s){
     }else{
       closeTask();
     }
-    if(/^###\s+/.test(line)){closeList();out.push(`<h3>${inlineMd(line.slice(4))}</h3>`);}
-    else if(/^##\s+/.test(line)){closeList();out.push(`<h2>${inlineMd(line.slice(3))}</h2>`);}
-    else if(/^#\s+/.test(line)){closeList();out.push(`<h1>${inlineMd(line.slice(2))}</h1>`);}
+    const hM = line.match(/^(#{1,3})(?!#)\s*(.+)$/);
+if (hM) {
+  closeList();
+  const lv = hM[1].length;
+  out.push(`<h${lv}>${inlineMd(hM[2].trim())}</h${lv}>`);
+}
     else if(/^>\s?/.test(line)){closeList();out.push(`<blockquote>${inlineMd(line.replace(/^>\s?/,''))}</blockquote>`);}
     else if(/^[-*]\s+/.test(line)){
       if(!inList){out.push('<ul>');inList=true;}
@@ -3256,16 +3246,49 @@ function openConfirm(title,message,onOk,danger=true){
 function saveSnapshot(){
   const work=getWork();
   if(!work)return;
-  const snapshot={
-    id:uid(),
-    name:new Date().toLocaleString('zh-CN',{hour12:false}),
-    time:Date.now(),
-    chapters:JSON.parse(JSON.stringify(work.chapters)),
-    wordCount:work.chapters.reduce((s,c)=>s+countWords(c.content),0),
+
+  // 估算数据量，超过 3MB 提示用户
+  try {
+    const size = (localStorage.getItem(STORAGE_KEY)||'').length;
+    if (size > 3 * 1024 * 1024) {
+      toast('存储空间已超 3MB，建议先导出备份');
+    }
+  } catch(e){}
+
+  const fullChapters = JSON.parse(JSON.stringify(work.chapters));
+
+  const snapshot = {
+    id: uid(),
+    name: new Date().toLocaleString('zh-CN',{hour12:false}),
+    time: Date.now(),
+    chapters: fullChapters,
+    wordCount: work.chapters.reduce((s,c)=>s+countWords(c.content),0),
+    _full: true,
   };
-  if(!work.snapshots)work.snapshots=[];
+
+    if(!work.snapshots) work.snapshots=[];
+
+  // 先插入新快照
   work.snapshots.unshift(snapshot);
-  if(work.snapshots.length>10)work.snapshots=work.snapshots.slice(0,10);
+  if(work.snapshots.length>10) work.snapshots=work.snapshots.slice(0,10);
+
+  // 再降级：保证只保留最近 3 个全量快照
+  const fullSnaps = work.snapshots.filter(s => s._full);
+  if (fullSnaps.length > 3) {
+    fullSnaps.slice(3).forEach(s => {
+      s.chapters = s.chapters.map(c => ({
+        id: c.id,
+        title: c.title || '未命名',
+        summary: c.summary || '',
+        wordGoal: c.wordGoal || 0,
+        volume: c.volume || '',
+        updatedAt: c.updatedAt || 0,
+        _lightweight: true,
+      }));
+      s._full = false;
+    });
+  }
+
   saveNow();
   toast('已保存快照 · '+snapshot.name);
 }
@@ -3285,14 +3308,19 @@ function openSnapshots(){
         <button class="btn primary" id="newSnapshot" style="width:100%">＋ 保存当前版本为快照</button>
       </div>
       ${list.length===0?'<div class="empty-hint">还没有快照</div>':
-        list.map(s=>`
+               list.map(s=>`
           <div class="snap-item">
             <div style="min-width:0;flex:1">
-              <div class="snap-name">${esc(s.name)}</div>
+              <div class="snap-name">
+                ${esc(s.name)}
+                ${s._full===false ? '<span style="font-size:10px;color:var(--text-3);margin-left:6px;padding:1px 5px;border:1px solid var(--border);border-radius:4px">仅摘要</span>' : ''}
+              </div>
               <div class="snap-meta">${s.chapters.length} 章 · ${s.wordCount} 字 · ${fmtTime(s.time)}</div>
             </div>
             <div class="snap-actions">
-              <button class="btn small" data-restore="${s.id}">恢复</button>
+              ${s._full===false
+                ? '<span style="font-size:11px;color:var(--text-3);padding:4px 8px">不可恢复</span>'
+                : `<button class="btn small" data-restore="${s.id}">恢复</button>`}
               <button class="icon-btn" data-del-snap="${s.id}" style="opacity:1" title="删除">✕</button>
             </div>
           </div>
@@ -3307,11 +3335,12 @@ function openSnapshots(){
       closeModal();
       setTimeout(openSnapshots,100);
     };
-    root.querySelectorAll('[data-restore]').forEach(b=>{
+       root.querySelectorAll('[data-restore]').forEach(b=>{
       b.onclick=()=>{
         const sid=b.dataset.restore;
         const snap=work.snapshots.find(x=>x.id===sid);
         if(!snap)return;
+        if (snap._full === false) { toast('该快照为轻量快照，无法恢复'); return; }
         openConfirm('恢复快照',`将「${work.title}」的章节恢复到「${snap.name}」的状态，当前内容会被覆盖。确定吗？`,()=>{
           work.chapters=JSON.parse(JSON.stringify(snap.chapters));
           if(!work.chapters.find(c=>c.id===state.currentChapterId)){
@@ -4668,8 +4697,8 @@ function openSearchModal(){
       const match=s=>String(s||'').toLowerCase().includes(lower);
       const groups=[];
       const chapterHits=[];
-      state.works.forEach(w=>w.chapters.forEach(ch=>{
-        if(match(ch.title)||match(ch.content)){
+           state.works.forEach(w=>w.chapters.forEach(ch=>{
+        if(match(ch.title)||match(ch.content)||match(ch.volume)){
           let snippet='';
           if(match(ch.content)){
             const idx=ch.content.toLowerCase().indexOf(lower);
@@ -4677,7 +4706,8 @@ function openSearchModal(){
             const end=Math.min(ch.content.length,idx+q.length+50);
             snippet=(start>0?'…':'')+ch.content.slice(start,end)+(end<ch.content.length?'…':'');
           }else snippet=ch.content.slice(0,80)+'…';
-          chapterHits.push({type:'chapter',workId:w.id,chapterId:ch.id,title:ch.title||'未命名',subtitle:w.title,snippet});
+          const sub = (ch.volume ? `📁 ${ch.volume} · ` : '') + w.title;
+          chapterHits.push({type:'chapter',workId:w.id,chapterId:ch.id,title:ch.title||'未命名',subtitle:sub,snippet});
         }
       }));
       if(chapterHits.length)groups.push({title:`章节 · ${chapterHits.length}`,items:chapterHits});
@@ -4780,8 +4810,7 @@ function openSearchModal(){
         const i=state.ideas.find(x=>x.id===item.id);if(i)setTimeout(()=>openIdeaEditor(i),100);
       }
     }
-    input.addEventListener('input',()=>doSearch(input.value));
-    input.addEventListener('input',()=>doSearch(input.value));
+       input.addEventListener('input',()=>doSearch(input.value));
     results.addEventListener('click',e=>{
       const r=e.target.closest('.search-result');
       if(r){const item=currentResults[+r.dataset.resultIdx];if(item)openResult(item);}
@@ -5193,10 +5222,10 @@ case 'trash-restore': {
       if(!ch)return;
       openModal(`
         <div class="modal-header"><h3>${esc(ch.title)}</h3><button class="icon-btn" data-close style="opacity:1">✕</button></div>
-        <div class="modal-body" style="padding-bottom:16px">
+                <div class="modal-body" style="padding-bottom:16px">
           <div class="modal-actions" style="border:none;padding:0;flex-direction:column;align-items:stretch">
             <button class="btn" id="mRename">重命名</button>
-            <button class="btn" id="mVolume">📁 分卷：${esc(ch.volume||'未分组')}</button>
+            <button class="btn" id="mMoveVol">📁 移到卷：${esc(ch.volume||'未分组')}</button>
             <button class="btn" id="mStatus">🏷 状态：${CHAPTER_STATUS_LABELS[ch.status||'draft']}</button>
             <button class="btn" id="mGoal">🎯 字数目标：${ch.wordGoal||0} 字</button>
             <button class="btn" id="mDuplicate">复制章节</button>
@@ -5212,12 +5241,40 @@ case 'trash-restore': {
             render();
           }),100);
         };
-        root.querySelector('#mVolume').onclick=()=>{
+               root.querySelector('#mMoveVol').onclick=()=>{
           closeModal();
-          setTimeout(()=>openPrompt('分卷名（留空 = 未分组）', ch.volume||'', v=>{
-            ch.volume = (v||'').trim();
-            saveNow(); render();
-          }),100);
+          setTimeout(()=>{
+            const vols = [...new Set(work.chapters.map(c => c.volume||'').filter(Boolean))];
+            openModal(`
+              <div class="modal-header"><h3>移到卷</h3><button class="icon-btn" data-close style="opacity:1">✕</button></div>
+              <div class="modal-body" style="padding-bottom:16px">
+                <div class="modal-actions" style="border:none;padding:0;flex-direction:column;align-items:stretch">
+                  <button class="btn" data-pick-vol="">— 移出卷（未分组）</button>
+                  ${vols.map(v => `<button class="btn" data-pick-vol="${esc(v)}">📁 ${esc(v)}</button>`).join('')}
+                  <button class="btn" data-pick-new>＋ 新建卷</button>
+                </div>
+              </div>
+            `, r => {
+              r.querySelectorAll('[data-pick-vol]').forEach(b => {
+                b.onclick = () => {
+                  const v = b.dataset.pickVol;
+                  if (!v) { delete ch.volume; } else { ch.volume = v; }
+                  saveNow(); closeModal(); render();
+                  toast(v ? `已移到「${v}」` : '已移出卷');
+                };
+              });
+              r.querySelector('[data-pick-new]').onclick = () => {
+                closeModal();
+                setTimeout(()=>openPrompt('新建卷名', '新卷', v=>{
+                  const name = (v||'').trim();
+                  if (!name) return;
+                  ch.volume = name;
+                  saveNow(); render();
+                  toast(`已归入「${name}」`);
+                }), 100);
+              };
+            });
+          },100);
         };
         root.querySelector('#mStatus').onclick=()=>{
           const statuses = ['draft','outline','revising'];
@@ -5226,14 +5283,15 @@ case 'trash-restore': {
           saveNow(); closeModal(); render();
           toast('状态：' + CHAPTER_STATUS_LABELS[ch.status]);
         };
-        root.querySelector('#mGoal').onclick=()=>{
+               root.querySelector('#mGoal').onclick=()=>{
           closeModal();
           setTimeout(()=>openPrompt('字数目标（0 = 取消）', String(ch.wordGoal||0), v=>{
-            const n = parseInt(v,10) || 0;
-            ch.wordGoal = n>0?n:0;
+            const n = parseInt(v,10);
+            if (isNaN(n) || n < 0) { toast('请输入 0 或正整数'); return; }
+            ch.wordGoal = n;
             saveNow(); render();
             toast(n>0?`目标 ${n} 字`:'已取消目标');
-          },{type:'number'}),100);
+          }),100);
         };
         root.querySelector('#mDuplicate').onclick=()=>{
           const copy={id:uid(),title:ch.title+' 副本',content:ch.content,summary:ch.summary||'',updatedAt:Date.now()};
@@ -5376,15 +5434,16 @@ flushCaptureDeletions();
       });
       break;
     }
-    case 'edit-chapter-goal':{
+            case 'edit-chapter-goal':{
       const ch=getChapter();
       if(!ch){toast('请先选择章节');break;}
       openPrompt('本章字数目标（0 = 取消）', String(ch.wordGoal||2000), v=>{
-        const n=parseInt(v,10)||0;
-        ch.wordGoal=n>0?n:0;
+        const n=parseInt(v,10);
+        if(isNaN(n)||n<0){ toast('请输入 0 或正整数'); return; }
+        ch.wordGoal=n;
         saveNow();renderRight();
         toast(n>0?`本章目标 ${n} 字`:'已取消本章目标');
-      },{type:'number'});
+      });
       break;
     }
     case 'edit-goal':{
@@ -5511,16 +5570,116 @@ flushCaptureDeletions();
     case 'edit-hole': openPlotHoleEditor(state.plotHoles.find(x=>x.id===btn.dataset.id)); break;
     case 'new-warning': openWarningEditor(null); break;
     case 'edit-warning': openWarningEditor(state.warnings.find(x=>x.id===btn.dataset.id)); break;
-    case 'open-graph':openRelationGraph();break;
+        case 'open-graph':openRelationGraph();break;
     case 'open-check':openConsistencyCheck();break;
     case 'open-appearances':openAppearanceStats();break;
+
+    /* ── 分卷操作 ── */
+    case 'new-volume':{
+      const curCh = getChapter();
+      if (!curCh) { toast('请先选中一个章节'); break; }
+      const work = getWork();
+      const existing = [];
+      work.chapters.forEach(c => {
+        const v = c.volume || '';
+        if (v && !existing.includes(v)) existing.push(v);
+      });
+      openPrompt('新建卷名（会把当前章节移进去）', '卷' + (existing.length + 1), v => {
+        const name = v.trim();
+        if (!name) return;
+        curCh.volume = name;
+        saveNow(); render();
+        toast(`「${curCh.title||'未命名'}」已归入「${name}」`);
+      });
+      break;
+    }
+
+    case 'vol-up':{
+      const volName = btn.dataset.vol;
+      const work = getWork();
+      if (!work) break;
+      const volumes = [];
+      work.chapters.forEach(c => {
+        const v = c.volume || '';
+        if (v && !volumes.includes(v)) volumes.push(v);
+      });
+      const idx = volumes.indexOf(volName);
+      if (idx <= 0) break;
+      moveVolumeOrder(work, volName, volumes[idx-1]);
+      saveNow(); render();
+      break;
+    }
+
+    case 'vol-down':{
+      const volName = btn.dataset.vol;
+      const work = getWork();
+      if (!work) break;
+      const volumes = [];
+      work.chapters.forEach(c => {
+        const v = c.volume || '';
+        if (v && !volumes.includes(v)) volumes.push(v);
+      });
+      const idx = volumes.indexOf(volName);
+      if (idx < 0 || idx >= volumes.length - 1) break;
+      moveVolumeOrder(work, volName, volumes[idx+1]);
+      saveNow(); render();
+      break;
+    }
+
+        case 'vol-rename':{
+      const oldName = btn.dataset.vol;
+      const work = getWork();
+      if (!work) break;
+      openPrompt('重命名卷（留空 = 移出所有章节的卷）', oldName, v => {
+        const newName = v.trim();
+        const affected = work.chapters.filter(c => (c.volume||'') === oldName);
+        if (!newName) {
+          affected.forEach(c => { delete c.volume; });
+          saveNow(); render();
+          toast(`已移出「${oldName}」的 ${affected.length} 章`);
+        } else if (newName !== oldName && work.chapters.some(c => (c.volume||'') === newName)) {
+          // 目标卷已存在 → 询问是否合并
+          openConfirm(
+            '合并卷',
+            `「${newName}」已存在，是否把「${oldName}」的 ${affected.length} 章合并进去？`,
+            () => {
+              affected.forEach(c => { c.volume = newName; });
+              saveNow(); render();
+              toast(`已合并到「${newName}」`);
+            }
+          );
+        } else {
+          affected.forEach(c => { c.volume = newName; });
+          saveNow(); render();
+          toast(`已将 ${affected.length} 章改到「${newName}」`);
+        }
+      });
+      break;
+    }
   }
 });
 
 /* ============================================================
    21. 章节拖拽排序
 ============================================================ */
+/* 拖拽状态：章节 或 卷，二选一 */
+let dragVolumeName = null;
+
 document.addEventListener('dragstart',e=>{
+  // 从按钮发起的拖拽一律忽略，避免误触
+  if (e.target.closest('.icon-btn') || e.target.closest('button')) {
+    e.preventDefault();
+    return;
+  }
+
+  const volEl = e.target.closest('.volume-label');
+  if (volEl) {
+    dragVolumeName = volEl.dataset.volume;
+    volEl.classList.add('dragging');
+    e.dataTransfer.effectAllowed='move';
+    try { e.dataTransfer.setData('text/plain','vol:'+dragVolumeName); } catch(_){}
+    return;
+  }
   const item=e.target.closest('.chapter-item');
   if(!item)return;
   dragChapterId=item.dataset.chapter;
@@ -5528,37 +5687,111 @@ document.addEventListener('dragstart',e=>{
   e.dataTransfer.effectAllowed='move';
   try{e.dataTransfer.setData('text/plain',dragChapterId);}catch(_){}
 });
-document.addEventListener('dragend',e=>{
-  const item=e.target.closest('.chapter-item');
-  if(item)item.classList.remove('dragging');
-  document.querySelectorAll('.chapter-item.drag-over').forEach(x=>x.classList.remove('drag-over'));
+
+document.addEventListener('dragend',()=>{
+  document.querySelectorAll('.dragging').forEach(x=>x.classList.remove('dragging'));
+  document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));
   dragChapterId=null;
+  dragVolumeName=null;
 });
+
 document.addEventListener('dragover',e=>{
+  // 卷标题作为投放目标（拖章节 或 拖卷）
+  const volEl = e.target.closest('.volume-label');
+  if (volEl && (dragChapterId || dragVolumeName)) {
+    if (dragVolumeName === volEl.dataset.volume) return; // 自己不能投自己
+    e.preventDefault();
+    document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));
+    volEl.classList.add('drag-over');
+    return;
+  }
+  // 章节作为投放目标（只接受拖章节）
   const item=e.target.closest('.chapter-item');
   if(!item||!dragChapterId||item.dataset.chapter===dragChapterId)return;
   e.preventDefault();
-  document.querySelectorAll('.chapter-item.drag-over').forEach(x=>x.classList.remove('drag-over'));
+  document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));
   item.classList.add('drag-over');
 });
+
 document.addEventListener('drop',e=>{
+  const work=getWork();
+  if(!work)return;
+
+  // ── 投放到卷标题 ──
+  const volEl = e.target.closest('.volume-label');
+  if (volEl) {
+    const targetVol = volEl.dataset.volume;
+    if (dragVolumeName) {
+      // 卷拖卷 → 调整卷顺序
+      e.preventDefault();
+      moveVolumeOrder(work, dragVolumeName, targetVol);
+      dragVolumeName = null;
+      dragChapterId = null;
+      document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));
+      saveNow(); render();
+      return;
+    }
+    if (dragChapterId) {
+      // 章节拖卷 → 归入该卷（放到卷末尾）
+      e.preventDefault();
+      const ch = work.chapters.find(c=>c.id===dragChapterId);
+      if (ch) {
+        ch.volume = targetVol;
+        // 把这个章节移到该卷最后一章之后
+        const idx = work.chapters.indexOf(ch);
+        work.chapters.splice(idx, 1);
+        let lastIdx = -1;
+        work.chapters.forEach((c,i)=>{ if((c.volume||'')===targetVol) lastIdx = i; });
+        work.chapters.splice(lastIdx+1, 0, ch);
+      }
+      dragChapterId = null;
+      dragVolumeName = null;
+      document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));
+      saveNow(); render();
+      toast('已归入「' + targetVol + '」');
+      return;
+    }
+    return;
+  }
+
+  // ── 投放到章节 ──
   const item=e.target.closest('.chapter-item');
   if(!item||!dragChapterId)return;
   e.preventDefault();
   const targetId=item.dataset.chapter;
   if(targetId===dragChapterId){dragChapterId=null;return;}
-  const work=getWork();
-  if(!work)return;
   const from=work.chapters.findIndex(c=>c.id===dragChapterId);
   const to=work.chapters.findIndex(c=>c.id===targetId);
   if(from<0||to<0)return;
   const [moved]=work.chapters.splice(from,1);
-  moved.volume = work.chapters[to] ? (work.chapters[to].volume || '') : '';
-  work.chapters.splice(to,0,moved);
+  const toIndex = from < to ? to - 1 : to;
+  const target = work.chapters[toIndex];
+  moved.volume = target ? (target.volume || '') : '';
+  work.chapters.splice(to, 0, moved);
   dragChapterId=null;
-  item.classList.remove('drag-over');
+  document.querySelectorAll('.drag-over').forEach(x=>x.classList.remove('drag-over'));
   saveNow();render();
 });
+
+/* 调整卷顺序：按出现顺序重排所有章节 */
+function moveVolumeOrder(work, fromVol, toVol) {
+  if (!fromVol || !toVol || fromVol === toVol) return;
+  const volumes = [];
+  work.chapters.forEach(c => {
+    const v = c.volume || '';
+    if (!volumes.includes(v)) volumes.push(v);
+  });
+  const fromIdx = volumes.indexOf(fromVol);
+  const toIdx = volumes.indexOf(toVol);
+  if (fromIdx < 0 || toIdx < 0) return;
+  volumes.splice(fromIdx, 1);
+  volumes.splice(toIdx, 0, fromVol);
+  const newChapters = [];
+  volumes.forEach(v => {
+    work.chapters.filter(c => (c.volume || '') === v).forEach(c => newChapters.push(c));
+  });
+  work.chapters = newChapters;
+}
 
 /* ============================================================
    22. 快捷键
@@ -6539,7 +6772,9 @@ function openIdeaEditor(idea){
       const activeScope = root.querySelector('.scope-tab.active');
       it.scope = activeScope ? activeScope.dataset.scope : 'chapter';
 
-      const usedIn = [];
+            const curWork = getWork();
+      const curChapterIds = new Set(curWork ? curWork.chapters.map(c => c.id) : []);
+      const usedIn = (it.usedIn || []).filter(cid => !curChapterIds.has(cid)); // 保留其他作品的关联
       root.querySelectorAll('[data-chapter-id]').forEach(cb => {
         if (cb.checked) usedIn.push(cb.dataset.chapterId);
       });
@@ -6662,10 +6897,11 @@ function toggleSidebar(){
   const sb = document.querySelector('#sidebar');
   const btn = document.querySelector('#btnCollapseLeft');
   if (!sb) return;
+  const currentWidth = sb.offsetWidth;
   const collapsed = sb.classList.toggle('collapsed');
   if (btn) btn.textContent = collapsed ? '▶' : '◀';
   if (collapsed) {
-    prefs.sidebarWidth = sb.offsetWidth || 240;
+    if (currentWidth > 0) prefs.sidebarWidth = currentWidth;
     saveNow();
   } else {
     sb.style.width = (prefs.sidebarWidth || 240) + 'px';
@@ -6842,19 +7078,6 @@ setInterval(() => {
   if (prefs.lockdown && prefs.lockdown.active) updateLockdownBar();
 }, 1000);
 
-
-
-document.querySelector('#pomoRest')?.addEventListener('change', e => {
-  const v = Math.max(1, Math.min(60, parseInt(e.target.value,10)||5));
-  prefs.pomodoro.restMin = v;
-  e.target.value = v;
-  saveNow();
-});
-document.querySelector('#pomoSound')?.addEventListener('change', e => {
-  prefs.pomodoro.soundEnabled = e.target.checked;
-  saveNow();
-});
-
 /* ============================================================
    31. 主题色
 ============================================================ */
@@ -6879,7 +7102,6 @@ function applyAccent(color){
     d.classList.toggle('active', d.dataset.themeColor === color);
   });
 }
-
 document.querySelectorAll('.theme-dot').forEach(dot => {
   dot.addEventListener('click', () => {
     const c = dot.dataset.themeColor;
@@ -6889,7 +7111,6 @@ document.querySelectorAll('.theme-dot').forEach(dot => {
     toast('主题色已切换');
   });
 });
-
 // 启动时应用
 applyAccent(prefs.accentColor);
 /* ============================================================
