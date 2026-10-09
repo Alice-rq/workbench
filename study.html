@@ -6017,22 +6017,30 @@ function syncSharedPomodoros() {
   let arr;
   try { arr = JSON.parse(localStorage.getItem(SHARED_POMO_KEY) || '[]'); } catch (e) { return 0; }
   if (!Array.isArray(arr) || !arr.length) return 0;
+  // 只有这些分组的活动才算学习时长；想加别的分组，往方括号里加
+  const STUDY_GROUPS = ['学习'];
 
   const seen = new Set(
     (state.sessions || []).map(s => s.sharedId).filter(Boolean)
   );
 
-  let added = 0;
+    let added = 0;
   for (const p of arr) {
     if (!p || !p.id || seen.has(p.id)) continue;
+// 有分组、且分组不在白名单里 → 跳过，不计入学习统计
+    // （没有分组的老数据默认放行，避免丢失以前记录）
+    const grp = String(p.group || '').trim();
+    if (grp && !STUDY_GROUPS.includes(grp)) continue;
     const endTs = p.endedAt || Date.now();
+    const isDelay = /延时/.test(p.label || '');
     state.sessions.push({
       id: uid(),
       sharedId: p.id,
       date: p.date || dateKey(new Date(endTs)),
       minutes: p.minutes || Math.max(1, Math.round((p.seconds || 0) / 60)),
       at: endTs,
-      kind: 'pomodoro',
+      // 延时算"手动学习时长"，不算番茄个数
+      kind: isDelay ? 'manual' : 'pomodoro',
       note: p.label || ''
     });
     seen.add(p.id);
