@@ -1545,6 +1545,25 @@
     </div>
   </div>
 </div>
+<!-- 番茄钟结束弹窗 -->
+<div class="form-modal" id="pomo-end-modal">
+  <div class="form-overlay" data-action="close-pomo-end"></div>
+  <div class="form-panel" style="max-width:380px">
+    <div class="form-panel-header">
+      <div class="form-panel-title"><span class="icon">⏰</span><span>时间到！</span></div>
+      <div class="form-panel-desc" id="pomo-end-desc"></div>
+    </div>
+    <div class="form-panel-body" style="padding:8px 24px 4px">
+      <div id="pomo-end-points" style="text-align:center;font-size:20px;font-weight:800;padding:10px 0;color:var(--accent)"></div>
+    </div>
+    <div class="form-panel-actions" style="flex-wrap:wrap;justify-content:center">
+      <button class="btn" data-action="pomo-delay" data-min="5">延时 5 分钟</button>
+      <button class="btn" data-action="pomo-delay" data-min="10">延时 10 分钟</button>
+      <button class="btn" data-action="pomo-delay" data-min="15">延时 15 分钟</button>
+      <button class="btn btn-primary" data-action="pomo-done">完成</button>
+    </div>
+  </div>
+</div>
 <div class="toast" id="toast"></div>
 
 <script>
@@ -1792,7 +1811,8 @@ let state = {
     cards: true, resources: true, notes: false, plans: false, questions: false,
     tag: '', range: 'all',
     cardsOnlyDue: false, cardsWithSpace: true,
-    questionsHideAnswers: true,
+        questionsHideAnswers: true,
+    questionsHideMyAnswer: false,
     includeTimestamp: true
   },
   countdowns: [],   // [{id, name, targetDate, icon, createdAt}]
@@ -3026,7 +3046,8 @@ function renderHabitsCard() {
                 <span class="icon">${esc(h.icon || '✓')}</span>
                 <span>${esc(h.name)}</span>
                 ${streak > 0 ? `<span class="streak">${streak}天</span>` : ''}
-                <span class="edit-habit" data-action="edit-habit" data-id="${h.id}" title="编辑">✎</span>
+                                <span class="edit-habit" data-action="edit-habit" data-id="${h.id}" title="编辑">✎</span>
+                <span class="edit-habit" data-action="del-habit" data-id="${h.id}" title="删除" style="color:var(--danger)">×</span>
               </div>`;
           }).join('')}
         </div>
@@ -3257,6 +3278,7 @@ function renderPlanCard(plan) {
           </div>
         </div>
         <div class="plan-actions">
+          <button class="btn btn-sm" data-action="plan-edit" data-id="${plan.id}">编辑</button>
           <button class="btn btn-sm btn-danger" data-action="plan-del" data-id="${plan.id}">删除</button>
         </div>
       </div>
@@ -3296,6 +3318,7 @@ function renderStage(plan, stage) {
         </div>
         <div class="stage-actions">
           <button class="btn btn-sm" data-action="stage-add-task" data-plan-id="${plan.id}" data-stage-id="${stage.id}">+ 任务</button>
+          <button class="btn btn-sm" data-action="stage-edit" data-plan-id="${plan.id}" data-stage-id="${stage.id}">编辑</button>
           <button class="btn btn-sm btn-ghost" data-action="stage-del" data-plan-id="${plan.id}" data-stage-id="${stage.id}">删除</button>
         </div>
       </div>
@@ -3315,6 +3338,7 @@ function renderStage(plan, stage) {
               <div class="stage-task-title">${esc(t.title)}</div>
               ${t.due ? `<span class="tag" style="font-size:10.5px">${relDate(t.due)}</span>` : ''}
               <div class="stage-task-actions">
+                <button class="btn btn-sm btn-ghost" data-action="stage-task-edit" data-id="${t.id}" title="编辑">✎</button>
                 <button class="btn btn-sm btn-ghost" data-action="stage-task-del" data-id="${t.id}" title="删除">×</button>
               </div>
             </div>
@@ -4687,11 +4711,14 @@ function generatePrintHTML() {
               ${x.questionText ? `<div class="print-q-body">${esc(x.questionText).replace(/\n/g, '<br>')}</div>` : ''}
               ${(x.attachments || []).length ? `<div class="print-q-att">附件 ${x.attachments.length} 个（${x.attachments.map(a => esc(a.name)).join('、')}）</div>` : ''}
 
-              ${x.myAnswer ? `
+                           ${x.myAnswer && !opt.questionsHideMyAnswer ? `
                 <div class="print-q-block">
                   <div class="print-q-block-title">我的答案</div>
                   <div class="print-q-block-body">${esc(x.myAnswer).replace(/\n/g, '<br>')}</div>
                 </div>
+              ` : ''}
+              ${x.myAnswer && opt.questionsHideMyAnswer ? `
+                <div class="print-q-hidden">我的答案（已折叠，可手写作答）</div>
               ` : ''}
 
               ${!opt.questionsHideAnswers && aiEntries.length ? aiEntries.map(([k, v]) => `
@@ -4811,8 +4838,11 @@ function renderPrint() {
           </div>
         </div>
 
-        <div class="print-option-group">
+                <div class="print-option-group">
           <div class="print-option-group-title">错题集选项</div>
+          <div class="print-check ${opt.questionsHideMyAnswer ? 'checked' : ''}" data-action="print-toggle" data-key="questionsHideMyAnswer">
+            <span class="box"></span><span>隐藏我的答案（留白手写）</span>
+          </div>
           <div class="print-check ${opt.questionsHideAnswers ? 'checked' : ''}" data-action="print-toggle" data-key="questionsHideAnswers">
             <span class="box"></span><span>隐藏参考答案（留白手写）</span>
           </div>
@@ -5181,22 +5211,92 @@ document.addEventListener('click',async (e) => {
       toast('计划已创建，现在添加阶段');
       break;
     }
-    case 'toggle-plan':
+        case 'toggle-plan':
       if (e.target.closest('[data-action="plan-del"]')) break;
+      if (e.target.closest('[data-action="plan-edit"]')) break;
       togglePlan(id);
       break;
+    case 'plan-edit': {
+      e.stopPropagation();
+      const p = state.plans.find(x => x.id === id);
+      if (!p) break;
+      const v = await showForm({
+        title: '编辑计划',
+        icon: '✏️',
+        fields: [
+          { key: 'title', label: '计划名称', required: true, default: p.title },
+          { key: 'desc', label: '计划简介', default: p.desc || '' },
+          { key: 'startDate', label: '开始日期', type: 'date', default: p.startDate || '' },
+          { key: 'endDate', label: '结束日期', type: 'date', default: p.endDate || '' }
+        ],
+        submitText: '保存'
+      });
+      if (!v) break;
+      p.title = v.title;
+      p.desc = v.desc || '';
+      if (v.startDate) p.startDate = v.startDate;
+      if (v.endDate) p.endDate = v.endDate;
+      save(); render(); toast('已保存');
+      break;
+    }
     case 'plan-del':
       deletePlan(id);
       break;
     case 'stage-add':
       addStage(el.dataset.planId);
       break;
+    case 'stage-edit': {
+      e.stopPropagation();
+      const plan = state.plans.find(p => p.id === el.dataset.planId);
+      if (!plan) break;
+      const stage = plan.stages.find(s => s.id === el.dataset.stageId);
+      if (!stage) break;
+      const v = await showForm({
+        title: '编辑阶段',
+        icon: '✏️',
+        fields: [
+          { key: 'title', label: '阶段名称', required: true, default: stage.title },
+          { key: 'desc', label: '阶段说明', default: stage.desc || '' },
+          { key: 'startDate', label: '开始日期', type: 'date', default: stage.startDate || '' },
+          { key: 'endDate', label: '结束日期', type: 'date', default: stage.endDate || '' }
+        ],
+        submitText: '保存'
+      });
+      if (!v) break;
+      stage.title = v.title;
+      stage.desc = v.desc || '';
+      if (v.startDate) stage.startDate = v.startDate;
+      if (v.endDate) stage.endDate = v.endDate;
+      save(); render(); toast('已保存');
+      break;
+    }
     case 'stage-del':
       delStage(el.dataset.planId, el.dataset.stageId);
       break;
     case 'stage-add-task':
       addStageTask(el.dataset.planId, el.dataset.stageId);
       break;
+    case 'stage-task-edit': {
+      e.stopPropagation();
+      const t = state.tasks.find(x => x.id === id);
+      if (!t) break;
+      const v = await showForm({
+        title: '编辑任务',
+        icon: '✏️',
+        fields: [
+          { key: 'title', label: '任务内容', required: true, default: t.title },
+          { key: 'due', label: '截止日期', type: 'date', default: t.due || '' }
+        ],
+        submitText: '保存'
+      });
+      if (!v) break;
+      const parsed = parseTags(v.title);
+      t.title = parsed.text;
+      t.tags = parsed.tags;
+      if (v.due) t.due = v.due;
+      save(); render(); toast('已保存');
+      break;
+    }
     case 'stage-task-del':
       delStageTask(id);
       break;
@@ -5253,10 +5353,26 @@ document.addEventListener('click',async (e) => {
     }
     /* --- 习惯 --- */
     case 'add-habit': addHabit(); break;
-    case 'toggle-habit':
+        case 'toggle-habit':
       if (e.target.closest('[data-action="edit-habit"]')) break;
+      if (e.target.closest('[data-action="del-habit"]')) break;
       toggleHabit(id); break;
     case 'edit-habit': e.stopPropagation(); editHabit(id); break;
+    case 'del-habit': {
+      e.stopPropagation();
+      const h = state.habits.find(x => x.id === id);
+      if (!h) break;
+      const ok = await showConfirm({
+        title: '删除习惯',
+        desc: `确定删除「${h.name}」？该习惯的所有打卡记录也会一并删除。`,
+        confirmText: '删除',
+        danger: true
+      });
+      if (!ok) break;
+      state.habits = state.habits.filter(x => x.id !== id);
+      save(); render(); toast('已删除习惯');
+      break;
+    }
 
     /* --- 目标 --- */
     case 'goal-add': {
@@ -5453,6 +5569,7 @@ document.addEventListener('click',async (e) => {
         tag: '', range: 'all',
         cardsOnlyDue: false, cardsWithSpace: true,
         questionsHideAnswers: true,
+        questionsHideMyAnswer: false,
         includeTimestamp: true
       };
       render();
@@ -5463,6 +5580,9 @@ document.addEventListener('click',async (e) => {
     case 'q-filter-cat': state.qFilterCat = el.dataset.cat; render(); break;
     case 'q-filter-status': state.qFilterStatus = el.dataset.status; render(); break;
     case 'close-question': closeQuestionModal(); break;
+    case 'close-pomo-end': closePomoEndDialog(); break;
+    case 'pomo-delay': delayPomo(Number(el.dataset.min) || 5); break;
+    case 'pomo-done': closePomoEndDialog(); toast('已记录完成 🎉'); break;
     case 'q-to-card':
       e.stopPropagation();
       questionToCards(id);
@@ -6058,7 +6178,42 @@ window.addEventListener('global-pomodoro-end', function (e) {
   pushSharedPomodoro(d);
   const added = syncSharedPomodoros();
   if (added && (state.view === 'today' || state.view === 'stats')) render();
+  // 弹出延时 / 完成弹窗
+  showPomoEndDialog(d);
 });
+
+/* ===== 番茄钟结束弹窗 ===== */
+let lastPomoEnd = null;
+
+function showPomoEndDialog(detail) {
+  lastPomoEnd = detail || {};
+  const modal = document.getElementById('pomo-end-modal');
+  if (!modal) return;
+  const name = ((lastPomoEnd.label || '专注')).replace(/\s*·\s*延时$/, '');
+  const mins = Math.max(1, Math.round((lastPomoEnd.totalSeconds || 0) / 60));
+  document.getElementById('pomo-end-desc').textContent =
+    '「' + name + '」完成了 ' + mins + ' 分钟，要继续吗？';
+  const pts = document.getElementById('pomo-end-points');
+  pts.textContent = '🍅 番茄 +1，已计入学习时长';
+  modal.classList.add('show');
+}
+
+function closePomoEndDialog() {
+  const modal = document.getElementById('pomo-end-modal');
+  if (modal) modal.classList.remove('show');
+}
+
+function delayPomo(minutes) {
+  closePomoEndDialog();
+  const name = ((lastPomoEnd && lastPomoEnd.label) || '专注').replace(/\s*·\s*延时$/, '');
+  const sec = Math.round(minutes) * 60;
+  if (window.GlobalBar && GlobalBar.start) {
+    GlobalBar.start(name, sec);
+    toast('已延时 ' + minutes + ' 分钟，继续加油 💪');
+  } else {
+    toast('延时失败：未找到计时器');
+  }
+}
 
 /* 其他标签页（如「我的工作台」）结束时，storage 事件触发同步 */
 window.addEventListener('storage', function (e) {
