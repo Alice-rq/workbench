@@ -771,8 +771,8 @@
 
 .print-preview {
   background: #fff; color: #111;
-  max-width: 210mm; min-height: 297mm;
-  padding: 18mm 16mm; margin: 0 auto;
+  max-width: 210mm; min-height: auto;
+  padding: 10mm 0mm; margin: 0 auto;
   box-shadow: 0 6px 24px rgba(15,23,42,.12);
   border-radius: 6px;
   font-family: -apple-system, "PingFang SC", "Microsoft YaHei", serif;
@@ -891,13 +891,27 @@
   list-style: none; padding: 0; margin: 4px 0;
 }
 .print-preview .print-q-issue-list li {
-  font-size: 10.5pt; padding: 3px 0;
-  display: flex; gap: 8px; align-items: baseline;
+  font-size: 10.5pt;
+  padding: 4px 0;
+  display: flex;
+  gap: 8px;
+  align-items: flex-start;
+  page-break-inside: avoid;
 }
 .print-preview .print-q-issue-list li.resolved { color: #999; text-decoration: line-through; }
 .print-preview .print-q-issue-list .lvl {
-  display: inline-block; font-size: 8.5pt; padding: 1px 6px;
-  border-radius: 3px; font-weight: 700; flex-shrink: 0;
+  display: inline-block;
+  font-size: 8.5pt;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-weight: 700;
+  flex-shrink: 0;
+  min-width: 30px;      /* 固定宽度，让下面的文字对齐 */
+  text-align: center;
+  line-height: 1.2;
+  border: 1px solid #ccc; /* 打印黑白也看得清 */
+  background: #f0f0f0 !important; /* 强制灰底，避免打印时白底看不见 */
+  color: #000 !important;   /* 强制黑字 */
 }
 .print-preview .print-q-issue-list .lvl-high { background: #fee2e2; color: #b91c1c; }
 .print-preview .print-q-issue-list .lvl-mid  { background: #fef3c7; color: #b45309; }
@@ -913,7 +927,15 @@
   @page { size: A4; margin: 14mm; }
   html, body { background: #fff !important; height: auto !important; }
   .sidebar, .sidebar-overlay, .mobile-header, .mobile-tabbar,
-  .no-print, .toast, .search-modal { display: none !important; }
+  .no-print, .toast, .search-modal,
+  #global-bar, .global-bar, #globalBar, .gbar { display: none !important; }
+  .main { padding-top: 0 !important; }
+  .print-preview {
+    box-shadow: none !important;
+    border: none !important;
+    margin: 0 auto !important;
+    padding: 0 !important;
+  }
   .main {
     padding: 0 !important; max-width: 100% !important;
     margin: 0 !important; width: 100% !important;
