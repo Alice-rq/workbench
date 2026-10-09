@@ -924,30 +924,89 @@
 
 /* ============ 打印时隐藏所有 UI ============ */
 @media print {
-  @page { size: A4; margin: 14mm; }
-  html, body { background: #fff !important; height: auto !important; }
-  .sidebar, .sidebar-overlay, .mobile-header, .mobile-tabbar,
-  .no-print, .toast, .search-modal,
-  #global-bar, .global-bar, #globalBar, .gbar { display: none !important; }
-  .main { padding-top: 0 !important; }
+  @page { size: A4; margin: 15mm; }
+  body {
+    background: #fff !important;
+    color: #000 !important;
+    font-family: "PingFang SC", "Microsoft YaHei", sans-serif !important;
+    font-size: 11pt !important;
+    line-height: 1.6 !important;
+  }
+  /* 彻底隐藏所有按钮、导航、顶部栏、侧边栏、弹窗、输入框 */
+  #global-bar, .global-bar, #globalBar, .globalBar, .gbar,
+  #app, .sidebar, .sidebar-overlay, .mobile-header, .mobile-tabbar,
+  .search-modal, .form-modal, .toast, .no-print,
+  .btn, button, input, select, textarea {
+    display: none !important;
+  }
+  /* 打印预览铺满整张 A4 纸，去掉阴影和边框 */
   .print-preview {
+    display: block !important;
+    width: 100% !important;
+    max-width: 100% !important;
+    margin: 0 !important;
+    padding: 0 !important;
     box-shadow: none !important;
     border: none !important;
-    margin: 0 auto !important;
-    padding: 0 !important;
+    background: #fff !important;
   }
-  .main {
-    padding: 0 !important; max-width: 100% !important;
-    margin: 0 !important; width: 100% !important;
+  /* 每个大标题 */
+  .print-section-title {
+    border-bottom: 2px solid #000 !important;
+    font-size: 14pt !important;
+    font-weight: bold !important;
+    padding-bottom: 4px !important;
+    margin-bottom: 12px !important;
+    display: flex !important;
+    justify-content: space-between !important;
   }
-  .print-preview {
-    box-shadow: none !important; padding: 0 !important;
-    margin: 0 !important; max-width: 100% !important;
-    min-height: 0 !important; border-radius: 0 !important;
-    font-size: 10.5pt;
+  .print-section-title small { font-weight: normal !important; font-size: 10pt !important; }
+  /* 素材库 */
+  .print-material {
+    padding: 12px 0 !important;
+    border-bottom: 1px solid #eee !important;
+    page-break-inside: avoid !important;
   }
-  a { color: #000 !important; text-decoration: underline !important; }
-  .print-section { page-break-inside: auto; }
+  .print-material-title { font-size: 13pt !important; font-weight: bold !important; margin-bottom: 4px !important; }
+  .print-material-meta { font-size: 9pt !important; color: #555 !important; margin-bottom: 6px !important; }
+  .print-material-content { font-size: 10.5pt !important; line-height: 1.6 !important; margin-bottom: 6px !important; color: #000 !important; }
+  .print-material-url { font-size: 9pt !important; color: #000 !important; text-decoration: none !important; word-break: break-all !important; }
+  /* 错题集的问题列表（解决“一般”标签对齐问题） */
+  .print-q-issue-list { list-style: none !important; padding: 0 !important; margin: 0 !important; }
+  .print-q-issue-list li {
+    display: flex !important;
+    align-items: flex-start !important;
+    gap: 8px !important;
+    margin-bottom: 6px !important;
+    page-break-inside: avoid !important;
+  }
+  .print-q-issue-list .lvl {
+    display: inline-block !important;
+    min-width: 34px !important;
+    text-align: center !important;
+    padding: 2px 4px !important;
+    font-size: 8.5pt !important;
+    font-weight: bold !important;
+    border: 1px solid #000 !important;
+    border-radius: 3px !important;
+    background: #f0f0f0 !important;
+    color: #000 !important;
+    flex-shrink: 0 !important;
+  }
+  .print-q-issue-list .ok { display: none !important; }
+  /* 通用块 */
+  .print-q-block { page-break-inside: avoid !important; margin-bottom: 10px !important; }
+  .print-q-block-title { font-weight: bold !important; font-size: 10pt !important; margin-bottom: 4px !important; }
+  .print-q-block-body { font-size: 10.5pt !important; line-height: 1.6 !important; }
+  .print-card { border: 1px solid #000 !important; padding: 10px !important; margin-bottom: 15px !important; page-break-inside: avoid !important; border-radius: 0 !important; }
+  .print-card-q { font-weight: bold !important; }
+  .print-card-divider { text-align: center !important; color: #666 !important; margin: 8px 0 !important; font-size: 9pt !important; }
+  .print-card-a { color: #000 !important; }
+  .print-note { margin-bottom: 20px !important; page-break-inside: avoid !important; }
+  .print-note-title { font-size: 13pt !important; font-weight: bold !important; margin-bottom: 8px !important; }
+  .print-note-body h1, .print-note-body h2, .print-note-body h3 { page-break-after: avoid !important; }
+  .print-footer { border-top: 1px solid #ccc !important; padding-top: 10px !important; text-align: center !important; font-size: 9pt !important; color: #666 !important; margin-top: 30px !important; }
+  .print-empty { display: none !important; }
 }
 /* ===== 通用表单弹窗 ===== */
 .form-modal {
@@ -4600,7 +4659,7 @@ function generatePrintHTML() {
   const parts = [];
   let sectionNum = 0;
 
-  if (opt.cards) {
+ if (opt.cards && filterForPrint('cards').length > 0) {
     sectionNum++;
     const list = filterForPrint('cards');
     parts.push(`
@@ -4622,7 +4681,7 @@ function generatePrintHTML() {
     `);
   }
 
-  if (opt.resources) {
+ if (opt.resources && filterForPrint('resources').length > 0) {
     sectionNum++;
     const list = filterForPrint('resources');
     parts.push(`
@@ -4646,7 +4705,7 @@ function generatePrintHTML() {
     `);
   }
 
-  if (opt.notes) {
+ if (opt.notes && filterForPrint('notes').length > 0) {
     sectionNum++;
     const list = filterForPrint('notes');
     parts.push(`
@@ -4665,7 +4724,7 @@ function generatePrintHTML() {
     `);
   }
 
-  if (opt.plans) {
+  if (opt.plans && state.plans.length > 0) {
     sectionNum++;
     const plans = state.plans;
     parts.push(`
@@ -4708,7 +4767,7 @@ function generatePrintHTML() {
     `);
   }
 
-  if (opt.questions) {
+  if (opt.questions && filterForPrint('questions').length > 0) {
     sectionNum++;
     const list = filterForPrint('questions');
     parts.push(`
