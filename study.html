@@ -772,7 +772,7 @@
 .print-preview {
   background: #fff; color: #111;
   max-width: 210mm; min-height: auto;
-  padding: 10mm 0mm; margin: 0 auto;
+  padding: 15mm 18mm; margin: 0 auto;
   box-shadow: 0 6px 24px rgba(15,23,42,.12);
   border-radius: 6px;
   font-family: -apple-system, "PingFang SC", "Microsoft YaHei", serif;
@@ -924,7 +924,7 @@
 
 /* ============ 打印时隐藏所有 UI ============ */
 @media print {
-  @page { size: A4; margin: 15mm; }
+  @page { size: A4; margin: 28mm; }
   body {
     background: #fff !important;
     color: #000 !important;
@@ -932,12 +932,27 @@
     font-size: 11pt !important;
     line-height: 1.6 !important;
   }
-  /* 彻底隐藏所有按钮、导航、顶部栏、侧边栏、弹窗、输入框 */
-  #global-bar, .global-bar, #globalBar, .globalBar, .gbar,
-  #app, .sidebar, .sidebar-overlay, .mobile-header, .mobile-tabbar,
+  /* 隐藏不打印的 UI（注意：不再隐藏 #app、.main、#view） */
+  #gbar, #global-bar, .global-bar, #globalBar, .globalBar, .gbar,
+  .sidebar, .sidebar-overlay, .mobile-header, .mobile-tabbar,
   .search-modal, .form-modal, .toast, .no-print,
   .btn, button, input, select, textarea {
     display: none !important;
+  }
+  /* 让 #app 从 flex 变回块级，否则内部布局会乱 */
+  #app {
+    display: block !important;
+    min-height: 0 !important;
+  }
+  .main {
+    display: block !important;
+    padding: 0 !important;
+    margin: 0 !important;
+    max-width: 100% !important;
+    width: 100% !important;
+  }
+  #view {
+    display: block !important;
   }
   /* 打印预览铺满整张 A4 纸，去掉阴影和边框 */
   .print-preview {
